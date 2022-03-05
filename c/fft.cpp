@@ -1,6 +1,8 @@
 #include <thread>
 #include <vector>
+#ifdef USE_OPENMP
 #include <omp.h>
+#endif
 
 using namespace std;
 
@@ -30,7 +32,11 @@ static inline u_int64_t BR(u_int64_t x, u_int64_t domainPow)
 
 template <typename Field>
 FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads) {
+#ifdef _OPENMP
     nThreads = _nThreads==0 ? omp_get_max_threads() : _nThreads;
+#else
+    nThreads = 1;
+#endif
     f = Field::field;
 
     u_int32_t domainPow = log2(maxDomainSize);
@@ -88,8 +94,13 @@ FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads) {
     }
     #pragma omp parallel
     {
+#ifdef _OPENMP
         int idThread = omp_get_thread_num();
         int nThreads = omp_get_num_threads();
+#else
+        int idThread = 0;
+        int nThreads = 1;
+#endif
         uint64_t increment = nRoots / nThreads;
         uint64_t start = idThread==0 ? 2 : idThread * increment;
         uint64_t end   = idThread==nThreads-1 ? nRoots : (idThread+1) * increment;

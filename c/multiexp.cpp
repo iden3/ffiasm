@@ -1,4 +1,6 @@
+#ifdef USE_OPENMP
 #include <omp.h>
+#endif
 #include <memory.h>
 #include "misc.hpp"
 /*
@@ -38,7 +40,11 @@ void ParallelMultiexp<Curve>::processChunk(uint32_t idChunk) {
     #pragma omp parallel for
     for(uint32_t i=0; i<n; i++) {
         if (g.isZero(bases[i])) continue;
+#ifdef _OPENMP
         int idThread = omp_get_thread_num();
+#else
+        int idThread = 0;
+#endif
         uint32_t chunkValue = getChunk(i, idChunk);
         if (chunkValue) {
             g.add(accs[idThread*accsPerChunk+chunkValue].p, accs[idThread*accsPerChunk+chunkValue].p, bases[i]);
@@ -75,7 +81,11 @@ void ParallelMultiexp<Curve>::reduce(typename Curve::Point &res, uint32_t nBits)
     typename Curve::Point p;
     #pragma omp parallel for
     for (uint32_t i = 1; i<ndiv2; i++) {
+#ifdef _OPENMP
         int idThread = omp_get_thread_num();
+#else
+        int idThread = 0;
+#endif
         if (!g.isZero(accs[ndiv2 + i].p)) {
             g.add(accs[i].p, accs[i].p, accs[ndiv2 + i].p);
             g.add(sall[idThread].p, sall[idThread].p, accs[ndiv2 + i].p);
@@ -97,13 +107,16 @@ void ParallelMultiexp<Curve>::reduce(typename Curve::Point &res, uint32_t nBits)
 
 template <typename Curve>
 void ParallelMultiexp<Curve>::multiexp(typename Curve::Point &r, typename Curve::PointAffine *_bases, uint8_t* _scalars, uint32_t _scalarSize, uint32_t _n, uint32_t _nThreads) {
+#ifdef _OPENMP
     nThreads = _nThreads==0 ? omp_get_max_threads() : _nThreads;
+    ThreadLimit threadLimit (nThreads);
+#else
+    nThreads = 1;
+#endif
     bases = _bases;
     scalars = _scalars;
     scalarSize = _scalarSize;
     n = _n;
-
-    ThreadLimit threadLimit (nThreads);
 
     if (n==0) {
         g.copy(r, g.zero());
