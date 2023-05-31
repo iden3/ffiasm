@@ -1,7 +1,12 @@
 #include <string>
 
 #include "exp.hpp"
-#include "multiexp.hpp"
+//#include "multiexp.hpp"
+//#include "run.hpp"
+#include "msm/msm.hpp"
+#include <iostream>
+#include <chrono>
+
 
 template <typename BaseField>
 class Curve {
@@ -116,8 +121,50 @@ public:
     }
 
     void multiMulByScalar(Point &r, PointAffine *bases, uint8_t* scalars, unsigned int scalarSize, unsigned int n, unsigned int nThreads=0) {
-        ParallelMultiexp<Curve<BaseField>> pm(*this);
-        pm.multiexp(r, bases, scalars, scalarSize, n, nThreads);
+
+        // Original multiexp
+        // ***************
+
+//        MSM<Curve<BaseField>> pm(*this);
+//        auto start = std::chrono::high_resolution_clock::now();
+//        pm.run(r, bases, scalars, scalarSize, n, nThreads);
+//
+//        auto end = std::chrono::high_resolution_clock::now();
+//        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//
+//        std::cout << "MSM execution time: " << duration.count() << " ms" << std::endl;
+
+        // New multiexp
+        // ***************
+
+//        let msm_run = MSMRun {
+//                points: point_vec.to_vec(),
+//                scalars: scalar_vec.to_vec(),
+//                window_bits,
+//                max_batch: 1024,
+//                max_collisions: 2048,
+//        };
+
+//        return quick_msm(&msm_run);
+
+//        MSM<Curve<BaseField>, BaseField> msm(*this);
+//        msm.run(r, bases, scalars, scalarSize, n, nThreads);
+
+        // ***************
+
+        // New multiexp
+        // ***************
+
+        MSM<Curve<BaseField>, BaseField> msm(*this);
+        msm.run(r, bases, scalars, scalarSize, n, nThreads);
+
+        // ***************
+
+        // Old multiexp
+        // ***************
+//        ParallelMultiexp<Curve<BaseField>> pm(*this);
+//        pm.multiexp(r, bases, scalars, scalarSize, n, nThreads);
+
     }
 
 #ifdef COUNT_OPS

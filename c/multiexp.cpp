@@ -35,10 +35,11 @@ uint32_t ParallelMultiexp<Curve>::getChunk(uint32_t scalarIdx, uint32_t chunkIdx
     return uint32_t(v);
 }
 
+// go over all the numbers (windowed numbered) in the window/chunk and add them to their corresponding index
 template <typename Curve>
 void ParallelMultiexp<Curve>::processChunk(uint32_t idChunk) {
     #pragma omp parallel for
-    for(uint32_t i=0; i<n; i++) {
+    for(uint32_t i=0; i<n; i++) {           // the for is iterating over the base points
         if (g.isZero(bases[i])) continue;
 #ifdef _OPENMP
         int idThread = omp_get_thread_num();
@@ -52,6 +53,7 @@ void ParallelMultiexp<Curve>::processChunk(uint32_t idChunk) {
     }
 }
 
+// This function takes all chunks and accumulate them to the first chunk's indexes
 template <typename Curve>
 void ParallelMultiexp<Curve>::packThreads() {
     #pragma omp parallel for
@@ -126,23 +128,33 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point &r, typename Curve:
         g.mulByScalar(r, bases[0], scalars, scalarSize);
         return;
     }
+
+    std::cout << "scalarSize: " << scalarSize << std::endl;
+    for (uint32_t i=0; i<scalarSize; i++) {
+        std::cout << "scalar " << i << ": " << (uint64_t)_scalars[i] << std::endl;
+    }
+
     bitsPerChunk = log2(n / PME2_PACK_FACTOR);
     if (bitsPerChunk > PME2_MAX_CHUNK_SIZE_BITS) bitsPerChunk = PME2_MAX_CHUNK_SIZE_BITS;
     if (bitsPerChunk < PME2_MIN_CHUNK_SIZE_BITS) bitsPerChunk = PME2_MIN_CHUNK_SIZE_BITS;
     nChunks = ((scalarSize*8 - 1 ) / bitsPerChunk)+1;
     accsPerChunk = 1 << bitsPerChunk;  // In the chunks last bit is always zero.
 
+    // prints all information about the process:
+    std::cout << "*** MSM Initiate *** (threads: " << nThreads << ", window-bits: " << bitsPerChunk << ", windows: " << nChunks << "points: " << n << ") \n";
+
     typename Curve::Point *chunkResults = new typename Curve::Point[nChunks];
     accs = new PaddedPoint[nThreads*accsPerChunk];
-    // std::cout << "InitTrees " << "\n"; 
+    // std::cout << "InitTrees " << "\n";
     initAccs();
 
+    // iterati over the windows/chunks, process all relevant windows for each base point
     for (uint32_t i=0; i<nChunks; i++) {
-        // std::cout << "process chunks " << i << "\n"; 
+        // std::cout << "process chunks " << i << "\n";
         processChunk(i);
-        // std::cout << "pack " << i << "\n"; 
+        // std::cout << "pack " << i << "\n";
         packThreads();
-        // std::cout << "reduce " << i << "\n"; 
+        // std::cout << "reduce " << i << "\n";
         reduce(chunkResults[i], bitsPerChunk);
     }
 
@@ -154,5 +166,5 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point &r, typename Curve:
         g.add(r, r, chunkResults[j]);
     }
 
-    delete[] chunkResults; 
+    delete[] chunkResults;
 }

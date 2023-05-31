@@ -6,7 +6,7 @@
 #define PME2_MIN_CHUNK_SIZE_BITS 2
 
 template <typename Curve>
-class ParallelMultiexp {
+class ParallelMultiexp { // MSM
 
     struct PaddedPoint {
         typename Curve::Point p;
