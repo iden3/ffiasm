@@ -127,8 +127,10 @@ private:
             }
 
             g.F.square(delta_y, q.x);
-            g.F.add(delta_y, delta_y, delta_y); // delta_y += delta_y;
-            g.F.add(delta_y, delta_y, delta_y); // delta_y += delta_y;
+
+            typename BaseField::Element temp;
+            g.F.add(temp, delta_y, delta_y);
+            g.F.add(delta_y, temp, delta_y);
 
             g.F.square(delta_x, q.y); // delta_x = q.Y.doubled();
         }
