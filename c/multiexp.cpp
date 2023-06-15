@@ -129,19 +129,11 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point &r, typename Curve:
         return;
     }
 
-    std::cout << "scalarSize: " << scalarSize << std::endl;
-    for (uint32_t i=0; i<scalarSize; i++) {
-        std::cout << "scalar " << i << ": " << (uint64_t)_scalars[i] << std::endl;
-    }
-
     bitsPerChunk = log2(n / PME2_PACK_FACTOR);
     if (bitsPerChunk > PME2_MAX_CHUNK_SIZE_BITS) bitsPerChunk = PME2_MAX_CHUNK_SIZE_BITS;
     if (bitsPerChunk < PME2_MIN_CHUNK_SIZE_BITS) bitsPerChunk = PME2_MIN_CHUNK_SIZE_BITS;
     nChunks = ((scalarSize*8 - 1 ) / bitsPerChunk)+1;
     accsPerChunk = 1 << bitsPerChunk;  // In the chunks last bit is always zero.
-
-    // prints all information about the process:
-    std::cout << "*** MSM Initiate *** (threads: " << nThreads << ", window-bits: " << bitsPerChunk << ", windows: " << nChunks << "points: " << n << ") \n";
 
     typename Curve::Point *chunkResults = new typename Curve::Point[nChunks];
     accs = new PaddedPoint[nThreads*accsPerChunk];

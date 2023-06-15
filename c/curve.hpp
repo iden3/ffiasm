@@ -1,8 +1,7 @@
 #include <string>
 
 #include "exp.hpp"
-//#include "multiexp.hpp"
-//#include "run.hpp"
+#include "multiexp.hpp"
 #include "msm/msm.hpp"
 #include <iostream>
 #include <chrono>
@@ -121,6 +120,11 @@ public:
     }
 
     void multiMulByScalar(Point &r, PointAffine *bases, uint8_t* scalars, unsigned int scalarSize, unsigned int n, unsigned int nThreads=0) {
+        ParallelMultiexp<Curve<BaseField>> pm(*this);
+        pm.multiexp(r, bases, scalars, scalarSize, n, nThreads);
+    }
+
+    void multiMulByScalarMSM(Point &r, PointAffine *bases, uint8_t* scalars, unsigned int scalarSize, unsigned int n, unsigned int nThreads=0) {
 
         // Original multiexp
         // ***************
@@ -155,8 +159,8 @@ public:
         // New multiexp
         // ***************
 
-        MSM<Curve<BaseField>, BaseField> msm(*this);
-        msm.run(r, bases, scalars, scalarSize, n, nThreads);
+        MSM<Curve<BaseField>, BaseField> msm(*this,  bases, scalars, scalarSize, n);
+        msm.run(r, nThreads);
 
         // ***************
 
@@ -166,6 +170,7 @@ public:
 //        pm.multiexp(r, bases, scalars, scalarSize, n, nThreads);
 
     }
+
 
 #ifdef COUNT_OPS
     void resetCounters();
@@ -177,4 +182,3 @@ public:
 
 
 #include "curve.cpp"
-
