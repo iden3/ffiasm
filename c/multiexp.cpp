@@ -3,6 +3,7 @@
 #endif
 #include <memory.h>
 #include "misc.hpp"
+#include "multiexp.hpp"
 /*
 template <typename Curve>
 void ParallelMultiexp<Curve>::initAccs() {
