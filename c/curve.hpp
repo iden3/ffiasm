@@ -2,8 +2,6 @@
 
 #include "exp.hpp"
 #include "multiexp.hpp"
-#include <iostream>
-#include <chrono>
 
 
 template <typename BaseField>
