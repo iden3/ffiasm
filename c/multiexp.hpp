@@ -5,6 +5,8 @@
 #define PME2_MAX_CHUNK_SIZE_BITS 16
 #define PME2_MIN_CHUNK_SIZE_BITS 2
 
+#include <cstdint>
+
 template <typename Curve>
 class ParallelMultiexp {
 

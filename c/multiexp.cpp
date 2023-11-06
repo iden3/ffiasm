@@ -1,6 +1,9 @@
+#ifdef USE_OPENMP
 #include <omp.h>
+#endif
 #include <memory.h>
 #include "misc.hpp"
+#include "multiexp.hpp"
 /*
 template <typename Curve>
 void ParallelMultiexp<Curve>::initAccs() {
@@ -33,13 +36,18 @@ uint64_t ParallelMultiexp<Curve>::getChunk(uint64_t scalarIdx, uint64_t chunkIdx
     return uint64_t(v);
 }
 
+// go over all the numbers (windowed numbered) in the window/chunk and add them to their corresponding index
 template <typename Curve>
 void ParallelMultiexp<Curve>::processChunk(uint64_t idChunk) {
     #pragma omp parallel for
     for(uint64_t i=0; i<n; i++) {
         if (g.isZero(bases[i])) continue;
         uint64_t chunkValue = getChunk(i, idChunk);
+#ifdef _OPENMP
         int idThread = omp_get_thread_num();
+#else
+        int idThread = 0;
+#endif
 //        if(chunkValue==0) continue;
         if (chunkValue) {
             g.add(accs[idThread*accsPerChunk+chunkValue].p, accs[idThread*accsPerChunk+chunkValue].p, bases[i]);
@@ -55,14 +63,20 @@ void ParallelMultiexp<Curve>::processChunk(uint64_t idChunk, uint64_t nX, uint64
         uint len = size[mod] - 1;
         if (i < 0 || i > len * nX + mod) continue;
         if (g.isZero(bases[i])) continue;
+#ifdef _OPENMP
         int idThread = omp_get_thread_num();
+#else
+        int idThread = 0;
+#endif
         uint64_t chunkValue = getChunk(i, idChunk);
+
         if (chunkValue) {
             g.add(accs[idThread*accsPerChunk+chunkValue].p, accs[idThread*accsPerChunk+chunkValue].p, bases[i]);
         }
     }
 }
 
+// This function takes all chunks and accumulate them to the first chunk's indexes
 template <typename Curve>
 void ParallelMultiexp<Curve>::packThreads() {
     #pragma omp parallel for
@@ -91,7 +105,11 @@ void ParallelMultiexp<Curve>::reduce(typename Curve::Point &res, uint64_t nBits)
 
     #pragma omp parallel for
     for (uint64_t i = 1; i<ndiv2; i++) {
+#ifdef _OPENMP
         int idThread = omp_get_thread_num();
+#else
+        int idThread = 0;
+#endif
         if (!g.isZero(accs[ndiv2 + i].p)) {
             g.add(accs[i].p, accs[i].p, accs[ndiv2 + i].p);
             g.add(sall[idThread].p, sall[idThread].p, accs[ndiv2 + i].p);
@@ -113,13 +131,16 @@ void ParallelMultiexp<Curve>::reduce(typename Curve::Point &res, uint64_t nBits)
 
 template <typename Curve>
 void ParallelMultiexp<Curve>::multiexp(typename Curve::Point &r, typename Curve::PointAffine *_bases, uint8_t* _scalars, uint64_t _scalarSize, uint64_t _n, uint64_t _nThreads) {
+#ifdef _OPENMP
     nThreads = _nThreads==0 ? omp_get_max_threads() : _nThreads;
+    ThreadLimit threadLimit (nThreads);
+#else
+    nThreads = 1;
+#endif
     bases = _bases;
     scalars = _scalars;
     scalarSize = _scalarSize;
     n = _n;
-
-    ThreadLimit threadLimit (nThreads);
 
     if (n==0) {
         g.copy(r, g.zero());
@@ -129,7 +150,9 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point &r, typename Curve:
         g.mulByScalar(r, bases[0], scalars, scalarSize);
         return;
     }
+
     bitsPerChunk = log2((uint32_t)(n / PME2_PACK_FACTOR));
+
     if (bitsPerChunk > PME2_MAX_CHUNK_SIZE_BITS) bitsPerChunk = PME2_MAX_CHUNK_SIZE_BITS;
     if (bitsPerChunk < PME2_MIN_CHUNK_SIZE_BITS) bitsPerChunk = PME2_MIN_CHUNK_SIZE_BITS;
     nChunks = ((scalarSize*8 - 1 ) / bitsPerChunk)+1;
@@ -137,15 +160,16 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point &r, typename Curve:
 
     typename Curve::Point *chunkResults = new typename Curve::Point[nChunks];
     accs = new PaddedPoint[nThreads*accsPerChunk];
-    // std::cout << "InitTrees " << "\n"; 
+    // std::cout << "InitTrees " << "\n";
     initAccs();
 
     for (uint64_t i=0; i<nChunks; i++) {
         // std::cout << "process chunks " << i << "\n"; 
+
         processChunk(i);
-        // std::cout << "pack " << i << "\n"; 
+        // std::cout << "pack " << i << "\n";
         packThreads();
-        // std::cout << "reduce " << i << "\n"; 
+        // std::cout << "reduce " << i << "\n";
         reduce(chunkResults[i], bitsPerChunk);
     }
 
@@ -157,7 +181,7 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point &r, typename Curve:
         g.add(r, r, chunkResults[j]);
     }
 
-    delete[] chunkResults; 
+    delete[] chunkResults;
 }
 
 template <typename Curve>
@@ -168,13 +192,17 @@ void ParallelMultiexp<Curve>::multiexp(typename Curve::Point &r,
                                       uint64_t nx,
                                       uint64_t x[],
                                         uint64_t _nThreads) {
-    nThreads = _nThreads == 0 ? omp_get_max_threads() : _nThreads;
+#ifdef _OPENMP
+    nThreads = _nThreads==0 ? omp_get_max_threads() : _nThreads;
+    ThreadLimit threadLimit (nThreads);
+#else
+    nThreads = 1;
+#endif
+
     bases = _bases;
     scalars = _scalars;
     scalarSize = _scalarSize;
     n = _n;
-
-    ThreadLimit threadLimit(nThreads);
 
     if (n == 0) {
         g.copy(r, g.zero());

@@ -3,6 +3,7 @@
 #include "exp.hpp"
 #include "multiexp.hpp"
 
+
 template <typename BaseField>
 class Curve {
 
@@ -124,6 +125,7 @@ public:
         ParallelMultiexp<Curve<BaseField>> pm(*this);
         pm.multiexp(r, bases, scalars, scalarSize, n, nx, x, nThreads);
     }
+
 #ifdef COUNT_OPS
     void resetCounters();
     void printCounters();
@@ -134,4 +136,3 @@ public:
 
 
 #include "curve.cpp"
-
