@@ -1,3 +1,7 @@
+## Important note 
+
+**This is a new implementation of ffiasm. If you need access to the original (and now obsoleted) implemenation at  https://github.com/iden3/ffiasm-old .**
+
 # ffiasm
 
 This package is a script that generates a Finite field Library in Intel64 Assembly
