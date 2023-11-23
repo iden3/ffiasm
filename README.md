@@ -4,7 +4,7 @@
 
 # ffiasm
 
-This package is a script that generates a Finite field Library in Intel64 Assembly
+This package is a script that generates a Finite field Library in Intel64 / ARM64 Assembly
 
 ## Usage
 
