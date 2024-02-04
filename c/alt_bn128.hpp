@@ -4,6 +4,8 @@
 #include "fq.hpp"
 #include "fr.hpp"
 #include "f2field.hpp"
+#include "f6field.hpp"
+#include "f12field.hpp"
 #include "curve.hpp"
 #include <string>
 namespace AltBn128 {
@@ -27,19 +29,25 @@ namespace AltBn128 {
 
         typedef RawFq F1;
         typedef F2Field<RawFq> F2;
+        typedef F6Field<F2> F6;
+        typedef F12Field<F6> F12;
         typedef RawFr Fr;
         typedef Curve<RawFq> G1;
         typedef Curve< F2Field<RawFq> > G2;
 
         F1 f1;
         F2 f2;
+        F6 f6;
+        F12 f12;
         Fr fr;
         G1 g1;
         G2 g2;
 
         Engine() : 
             f1(), 
-            f2("-1"), 
+            f2("-1"),
+            f6(),
+            f12(),
             fr(), 
             g1(f1, "0", "3", "1", "2"), 
             g2(
@@ -52,6 +60,8 @@ namespace AltBn128 {
 
         typedef F1::Element F1Element;
         typedef F2::Element F2Element;
+        typedef F6::Element F6Element;
+        typedef F12::Element F12Element;
         typedef Fr::Element FrElement;
         typedef G1::Point G1Point;
         typedef G1::PointAffine G1PointAffine;

@@ -1,40 +1,31 @@
 #include <string>
 
 template <typename BaseField>
-class F2Field {
+class F12Field {
 
 public:
     struct Element {
-        typename BaseField::Element a;
-        typename BaseField::Element b;
+        typename BaseField::Element x;
+        typename BaseField::Element y;
     };
 
     BaseField F;
 
-    typedef BaseField Base;
-    typedef typename BaseField::Element BaseElement;
-
 private:
-    enum TypeOfNr { nr_is_zero, nr_is_one, nr_is_negone, nr_is_long };
-    TypeOfNr typeOfNr;
-
-    typename BaseField::Element nr;
-
     Element fOne;
     Element fZero;
     Element fNegOne;
+    typename BaseField::BaseElement xiToPMinus1Over6;
+    typename BaseField::Base::BaseElement xiToPSquaredMinus1Over6;
 
-    void mulByNr(typename BaseField::Element &r, typename BaseField::Element &ab);
-
-    void initField(typename BaseField::Element &anr);
+    void initField();
 public:
 
-    F2Field(typename BaseField::Element &anr);
-    F2Field(std::string nrs);
+    F12Field();
 
-    Element &zero() { return fZero; };
-    Element &one() { return fOne; };
-    Element &negOne() { return fNegOne; };
+    Element &zero() { return fZero; }
+    Element &one() { return fOne; }
+    Element &negOne() { return fNegOne; }
 
     void copy(Element &r, Element &a);
     void add(Element &r, Element &a, Element &b);
@@ -43,11 +34,11 @@ public:
     void conjugate(Element &r, Element &a);
     void mul(Element &r, Element &a, Element &b);
     void mulScalar(Element &r, Element &a, typename BaseField::Element &b);
-    void mulXi(Element &r, Element &a);
+    void exp(Element &r, Element &a, uint8_t* scalar, unsigned int scalarSize);
     void square(Element &r, Element &a);
-    void dbl(Element &r, Element &a);
+    void Frobenius(Element &r, Element &a);
+    void FrobeniusP2(Element &r, Element &a);
     void inv(Element &r, Element &a);
-    void div(Element &r, Element &a, Element &b);
     bool isZero(Element &a);
     bool isOne(Element &a);
     bool eq(Element &a, Element &b);
@@ -57,4 +48,4 @@ public:
 
 };
 
-#include "f2field.cpp"
+#include "f12field.cpp"
