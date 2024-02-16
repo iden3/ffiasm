@@ -6,8 +6,8 @@ template <typename BaseField>
 F12Field<BaseField>::F12Field() {
     initField();
     F.F.fromString(xiToPMinus1Over6,
-                  "16469823323077808223889137241176536799009286646108169935659301613961712198316,"
-                  "8376118865763821496583973867626364092589906065868298776909617916018768340080");
+                   "8376118865763821496583973867626364092589906065868298776909617916018768340080,"
+                   "16469823323077808223889137241176536799009286646108169935659301613961712198316");
 
     F.F.F.fromString(xiToPSquaredMinus1Over6,
                   "21888242871839275220042445260109153167277707414472061641714758635765020556617");
@@ -101,7 +101,7 @@ void F12Field<BaseField>::exp(Element &r, Element &a, uint8_t* scalar, unsigned 
     for (int i=scalarSize*8-1; i>=0; i--) {
         square(t, r);
 
-        if ( !BIT_IS_SET(scalar, i) ) {
+        if ( BIT_IS_SET(scalar, i) ) {
             mul(r, t, a);
         } else {
             copy(r, t);
@@ -136,9 +136,9 @@ void F12Field<BaseField>::Frobenius(Element &r, Element &a) {
 
 template <typename BaseField>
 void F12Field<BaseField>::FrobeniusP2(Element &r, Element &a) {
-   F.Frobenius(r.x, a.x);
+   F.FrobeniusP2(r.x, a.x);
    F.mulGFP(r.x, r.x, xiToPSquaredMinus1Over6);
-   F.Frobenius(r.y, a.y);
+   F.FrobeniusP2(r.y, a.y);
 }
 
 template <typename BaseField>

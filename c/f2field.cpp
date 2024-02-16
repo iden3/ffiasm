@@ -125,14 +125,17 @@ void F2Field<BaseField>::mulScalar(Element &r, Element &a, typename BaseField::E
 
 template <typename BaseField>
 void F2Field<BaseField>::mulXi(Element &r, Element &a) {
+    Element t;
 
-    F.add(r.b, a.b, a.b);
-    F.add(r.b, r.b, a.b);
-    F.add(r.b, r.b, a.a);
+    dbl(t, a);
+    dbl(t, t);
+    dbl(t, t);
+    add(t, t, a);
 
-    F.add(r.a, a.a, a.a);
-    F.add(r.a, r.a, a.a);
-    F.sub(r.a, r.a, a.b);
+    F.add(t.b, t.b, a.a);
+    F.sub(t.a, t.a, a.b);
+
+    copy(r, t);
 }
 
 template <typename BaseField>
