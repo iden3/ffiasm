@@ -240,6 +240,13 @@ void F6Field<BaseField>::inv(Element &r, Element &a) {
 }
 
 template <typename BaseField>
+void F6Field<BaseField>::div(Element &r, Element &a, Element &b) {
+    Element tmp;
+    inv(tmp, b);
+    mul(r, a, tmp);
+}
+
+template <typename BaseField>
 bool F6Field<BaseField>::isZero(Element &a) {
     return F.isZero(a.x) && F.isZero(a.y) && F.isZero(a.z);
 }

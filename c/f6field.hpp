@@ -46,6 +46,7 @@ public:
     void Frobenius(Element &r, Element &a);
     void FrobeniusP2(Element &r, Element &a);
     void inv(Element &r, Element &a);
+    void div(Element &r, Element &a, Element &b);
     bool isZero(Element &a);
     bool isOne(Element &a);
     bool eq(Element &a, Element &b);

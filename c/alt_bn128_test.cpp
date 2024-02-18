@@ -28,6 +28,70 @@ TEST(altBn128, f2_simpleMul) {
     ASSERT_TRUE(F2.eq(e3, e33));
 }
 
+TEST(altBn128, f6_mulDiv) {
+    F6Element a;
+    F6.fromString(a, "((1,2),(3,4),(5,6))");
+
+    F6Element b;
+    F6.fromString(b, "((12,11),(10,9),(8,7))");
+
+    F6Element c,d;
+
+    F6.mul(c,a,b);
+    F6.div(d,c,b);
+
+    ASSERT_TRUE(F6.eq(a,d));
+}
+
+TEST(altBn128, f6_inv) {
+    F6Element a;
+    F6.fromString(a, "((239487238491,2356249827341),"
+                     "(082659782,182703523765),"
+                     "(978236549263,64893242))");
+
+    F6Element inv;
+    F6.inv(inv, a);
+
+    F6Element b;
+    F6.mul(b, inv, a);
+
+    ASSERT_TRUE(F6.isOne(b));
+}
+
+TEST(altBn128, f12_mulDiv) {
+    F12Element a;
+    F12.fromString(a, "(((1,2),(3,4),(5,6)),((7,8),(9,10),(11,12)))");
+
+    F12Element b;
+    F12.fromString(b, "(((12,11),(10,9),(8,7)),((6,5),(4,3),(2,1)))");
+
+    F12Element c,d;
+
+    F12.mul(c,a,b);
+    F12.div(d,c,b);
+
+    ASSERT_TRUE(F12.eq(a,d));
+}
+
+TEST(altBn128, f12_inv) {
+    F12Element a;
+    F12.fromString(a,
+                   "(((239846234862342323958623,2359862352529835623),"
+                     "(928836523,9856234),"
+                     "(235635286,5628392833)),"
+                    "((252936598265329856238956532167968,23596239865236954178968),"
+                     "(95421692834,236548),"
+                     "(924523,12954623)))" );
+
+    F12Element inv;
+    F12.inv(inv, a);
+
+    F12Element b;
+    F12.mul(b, inv, a);
+
+    ASSERT_TRUE(F12.isOne(b));
+}
+
 TEST(altBn128, g1_PlusZero) {
     G1Point p1;
 

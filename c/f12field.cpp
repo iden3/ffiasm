@@ -157,6 +157,13 @@ void F12Field<BaseField>::inv(Element &r, Element &a) {
 }
 
 template <typename BaseField>
+void F12Field<BaseField>::div(Element &r, Element &a, Element &b) {
+    Element tmp;
+    inv(tmp, b);
+    mul(r, a, tmp);
+}
+
+template <typename BaseField>
 bool F12Field<BaseField>::isZero(Element &a) {
     return F.isZero(a.x) && F.isZero(a.y);
 }

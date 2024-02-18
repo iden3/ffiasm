@@ -12,6 +12,8 @@ namespace AltBn128 {
 
     typedef RawFq::Element F1Element;
     typedef F2Field<RawFq>::Element F2Element;
+    typedef F6Field<F2Field<RawFq>>::Element F6Element;
+    typedef F12Field<F6Field<F2Field<RawFq>>>::Element F12Element;
     typedef RawFr::Element FrElement;
     typedef Curve<RawFq>::Point G1Point;
     typedef Curve<RawFq>::PointAffine G1PointAffine;
@@ -20,6 +22,8 @@ namespace AltBn128 {
 
     extern RawFq F1;
     extern F2Field<RawFq> F2;
+    extern F6Field<F2Field<RawFq>> F6;
+    extern F12Field<F6Field<F2Field<RawFq>>> F12;
     extern RawFr Fr;
     extern Curve<RawFq> G1;
     extern Curve< F2Field<RawFq> > G2;
