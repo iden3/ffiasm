@@ -1,12 +1,13 @@
 #include <string>
 
 template <typename BaseField>
-class F2Field {
+class F6Field {
 
 public:
     struct Element {
-        typename BaseField::Element a;
-        typename BaseField::Element b;
+        typename BaseField::Element x;
+        typename BaseField::Element y;
+        typename BaseField::Element z;
     };
 
     BaseField F;
@@ -15,37 +16,35 @@ public:
     typedef typename BaseField::Element BaseElement;
 
 private:
-    enum TypeOfNr { nr_is_zero, nr_is_one, nr_is_negone, nr_is_long };
-    TypeOfNr typeOfNr;
-
-    typename BaseField::Element nr;
-
     Element fOne;
     Element fZero;
     Element fNegOne;
+    typename BaseField::Element xiTo2PMinus2Over3;
+    typename BaseField::Element xiToPMinus1Over3;
+    typename BaseField::BaseElement xiTo2PSquaredMinus2Over3;
+    typename BaseField::BaseElement xiToPSquaredMinus1Over3;
 
-    void mulByNr(typename BaseField::Element &r, typename BaseField::Element &ab);
-
-    void initField(typename BaseField::Element &anr);
+    void initField();
 public:
 
-    F2Field(typename BaseField::Element &anr);
-    F2Field(std::string nrs);
+    F6Field();
 
-    Element &zero() { return fZero; };
-    Element &one() { return fOne; };
-    Element &negOne() { return fNegOne; };
+    Element &zero() { return fZero; }
+    Element &one() { return fOne; }
+    Element &negOne() { return fNegOne; }
 
     void copy(Element &r, Element &a);
     void add(Element &r, Element &a, Element &b);
     void sub(Element &r, Element &a, Element &b);
     void neg(Element &r, Element &a);
-    void conjugate(Element &r, Element &a);
     void mul(Element &r, Element &a, Element &b);
     void mulScalar(Element &r, Element &a, typename BaseField::Element &b);
-    void mulXi(Element &r, Element &a);
+    void mulTau(Element &r, Element &a);
+    void mulGFP(Element &r,Element &a, typename BaseField::BaseElement& b);
     void square(Element &r, Element &a);
     void dbl(Element &r, Element &a);
+    void Frobenius(Element &r, Element &a);
+    void FrobeniusP2(Element &r, Element &a);
     void inv(Element &r, Element &a);
     void div(Element &r, Element &a, Element &b);
     bool isZero(Element &a);
@@ -57,4 +56,4 @@ public:
 
 };
 
-#include "f2field.cpp"
+#include "f6field.cpp"

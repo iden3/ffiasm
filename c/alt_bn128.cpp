@@ -4,6 +4,8 @@ namespace AltBn128 {
 
 RawFq F1;
 F2Field<RawFq> F2("-1");
+F6Field<F2Field<RawFq>> F6;
+F12Field<F6Field<F2Field<RawFq>>> F12;
 RawFr Fr;
 Curve<RawFq> G1(F1, "0", "3", "1", "2");
 Curve< F2Field<RawFq> > G2(

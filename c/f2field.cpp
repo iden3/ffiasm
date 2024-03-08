@@ -85,6 +85,12 @@ void F2Field<BaseField>::neg(Element &r, Element &a) {
 }
 
 template <typename BaseField>
+void F2Field<BaseField>::conjugate(Element &r, Element &a) {
+    F.copy(r.a, a.a);
+    F.neg(r.b, a.b);
+}
+
+template <typename BaseField>
 void F2Field<BaseField>::copy(Element &r, Element &a) {
     F.copy(r.a, a.a);
     F.copy(r.b, a.b);
@@ -109,6 +115,33 @@ void F2Field<BaseField>::mul(Element &r, Element &e1, Element &e2) {
     F.mul(r.b, sum1, sum2 );
     F.sub(r.b, r.b, aa);
     F.sub(r.b, r.b, bb);
+}
+
+template <typename BaseField>
+void F2Field<BaseField>::mulScalar(Element &r, Element &a, typename BaseField::Element &b) {
+    F.mul(r.a, a.a, b);
+    F.mul(r.b, a.b, b);
+}
+
+template <typename BaseField>
+void F2Field<BaseField>::mulXi(Element &r, Element &a) {
+    Element t;
+
+    dbl(t, a);
+    dbl(t, t);
+    dbl(t, t);
+    add(t, t, a);
+
+    F.add(t.b, t.b, a.a);
+    F.sub(t.a, t.a, a.b);
+
+    copy(r, t);
+}
+
+template <typename BaseField>
+void F2Field<BaseField>::dbl(Element &r, Element &a) {
+    F.add(r.a, a.a, a.a);
+    F.add(r.b, a.b, a.b);
 }
 
 template <typename BaseField>
@@ -164,6 +197,11 @@ void F2Field<BaseField>::div(Element &r, Element &e1, Element &e2) {
 template <typename BaseField>
 bool F2Field<BaseField>::isZero(Element &a) {
     return F.isZero(a.a) && F.isZero(a.b);
+}
+
+template <typename BaseField>
+bool F2Field<BaseField>::isOne(Element &a) {
+    return F.eq(a.a, F.one()) && F.isZero(a.b);
 }
 
 template <typename BaseField>
