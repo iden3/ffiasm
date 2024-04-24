@@ -2,7 +2,7 @@
 
 #include "exp.hpp"
 #include "multiexp.hpp"
-
+#include "msm.hpp"
 
 template <typename BaseField>
 class Curve {
@@ -116,14 +116,21 @@ public:
         nafMulByScalar<Curve<BaseField>, PointAffine, Point>(*this, r, base, scalar, scalarSize);
     }
 
-    void multiMulByScalar(Point &r, PointAffine *bases, uint8_t* scalars, unsigned int scalarSize, unsigned int n, unsigned int nThreads=0) {
+    void multiMulByScalar(Point &r, PointAffine *bases, uint8_t* scalars, unsigned int scalarSize,
+                          unsigned int n, unsigned int nThreads=0) {
         ParallelMultiexp<Curve<BaseField>> pm(*this);
         pm.multiexp(r, bases, scalars, scalarSize, n, nThreads);
     }
-    void multiMulByScalar(Point &r, PointAffine *bases, uint8_t* scalars, unsigned int scalarSize, unsigned int n,
-                          uint32_t nx, uint64_t x[],  unsigned int nThreads=0) {
+    void multiMulByScalar(Point &r, PointAffine *bases, uint8_t* scalars, unsigned int scalarSize,
+                          unsigned int n, uint32_t nx, uint64_t x[],  unsigned int nThreads=0) {
         ParallelMultiexp<Curve<BaseField>> pm(*this);
         pm.multiexp(r, bases, scalars, scalarSize, n, nx, x, nThreads);
+    }
+
+    void multiMulByScalarMSM(Point &r, PointAffine *bases, uint8_t* scalars, unsigned int scalarSize,
+                             unsigned int n, unsigned int nThreads=0) {
+        MSM<Curve<BaseField>, BaseField> msm(*this);
+        msm.run(r, bases, scalars, scalarSize, n, nThreads);
     }
 
 #ifdef COUNT_OPS

@@ -275,6 +275,47 @@ TEST(altBn128, multiExp) {
     delete[] scalars;
 }
 
+TEST(altBn128, multiExpMSM) {
+
+    int NMExp = 40000;
+
+    typedef uint8_t Scalar[32];
+
+    Scalar *scalars = new Scalar[NMExp];
+    G1PointAffine *bases = new G1PointAffine[NMExp];
+
+    uint64_t acc=0;
+    for (int i=0; i<NMExp; i++) {
+        if (i==0) {
+            G1.copy(bases[0], G1.one());
+        } else {
+            G1.add(bases[i], bases[i-1], G1.one());
+        }
+        for (int j=0; j<32; j++) scalars[i][j] = 0;
+        *(int *)&scalars[i][0] = i+1;
+        acc += (i+1)*(i+1);
+    }
+
+    G1Point p1;
+    G1.multiMulByScalarMSM(p1, bases, (uint8_t *)scalars, 32, NMExp);
+
+    mpz_t e;
+    mpz_init_set_ui(e, acc);
+
+    Scalar sAcc;
+
+    for (int i=0;i<32;i++) sAcc[i] = 0;
+    mpz_export((void *)sAcc, NULL, -1, 8, -1, 0, e);
+    mpz_clear(e);
+
+    G1Point p2;
+    G1.mulByScalar(p2, G1.one(), sAcc, 32);
+
+    ASSERT_TRUE(G1.eq(p1, p2));
+
+    delete[] bases;
+    delete[] scalars;
+}
 
 TEST(altBn128, multiExp2) {
 
@@ -301,6 +342,41 @@ TEST(altBn128, multiExp2) {
     F1.fromString(ref.y, "20922060990592511838374895951081914567856345629513259026540392951012456141360");
 
     G1.multiMulByScalar(r, bases, (uint8_t *)scalars, 32, 2);
+    G1.copy(ra, r);
+
+    // std::cout << G1.toString(r, 10);
+
+    ASSERT_TRUE(G1.eq(ra, ref));
+
+    delete[] bases;
+    delete[] scalars;
+}
+
+TEST(altBn128, multiExp2MSM) {
+
+    int NMExp = 2;
+
+    AltBn128::FrElement *scalars = new AltBn128::FrElement[NMExp];
+    G1PointAffine *bases = new G1PointAffine[NMExp];
+
+    F1.fromString(bases[0].x, "1626275109576878988287730541908027724405348106427831594181487487855202143055");
+    F1.fromString(bases[0].y, "18706364085805828895917702468512381358405767972162700276238017959231481018884");
+    F1.fromString(bases[1].x, "17245156998235704504461341147511350131061011207199931581281143511105381019978");
+    F1.fromString(bases[1].y, "3858908536032228066651712470282632925312300188207189106507111128103204506804");
+
+    Fr.fromString(scalars[0], "1");
+    Fr.fromString(scalars[1], "20187316456970436521602619671088988952475789765726813868033071292105413408473");
+    Fr.fromMontgomery(scalars[0], scalars[0]);
+    Fr.fromMontgomery(scalars[1], scalars[1]);
+
+    G1Point r;
+    G1PointAffine ra;
+    G1PointAffine ref;
+
+    F1.fromString(ref.x, "9163953212624378696742080269971059027061360176019470242548968584908855004282");
+    F1.fromString(ref.y, "20922060990592511838374895951081914567856345629513259026540392951012456141360");
+
+    G1.multiMulByScalarMSM(r, bases, (uint8_t *)scalars, 32, 2);
     G1.copy(ra, r);
 
     // std::cout << G1.toString(r, 10);
