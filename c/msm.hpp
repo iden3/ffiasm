@@ -5,7 +5,7 @@
 
 template <typename Curve, typename BaseField>
 class MSM {
-    const uint64_t MIN_CHUNK_SIZE_BITS = 2;
+    const uint64_t MIN_CHUNK_SIZE_BITS = 3;
     const uint64_t MAX_CHUNK_SIZE_BITS = 16;
 
     Curve &g;
@@ -15,7 +15,7 @@ class MSM {
 
 private:
     uint64_t calcAddsCount(uint64_t nPoints, uint64_t scalarSize, uint64_t bitsPerChunk) const {
-        return (8 * scalarSize / bitsPerChunk) * (nPoints + 2 * (1 << bitsPerChunk) + bitsPerChunk + 1);
+        return (8 * scalarSize / bitsPerChunk) * (nPoints + 2 * (1 << (bitsPerChunk-1)) + bitsPerChunk + 1);
     }
 
     uint64_t calcBitsPerChunk(uint64_t n, uint64_t scalarSize) const {
@@ -38,7 +38,7 @@ private:
     }
 
     uint64_t calcBucketCount(uint64_t bitsPerChunk) const {
-        return 1 << bitsPerChunk;
+        return (1 << (bitsPerChunk-1));
     }
 
     uint64_t getBucketIndex(uint64_t scalarIdx, uint64_t chunkIdx) const {

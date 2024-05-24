@@ -38,9 +38,29 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
     const uint64_t nChunks = calcChunkCount(scalarSize, bitsPerChunk);
     const uint64_t nBuckets = calcBucketCount(bitsPerChunk);
     const uint64_t matrixSize = nThreads * nBuckets;
+    const uint64_t nSlices = nChunks*nPoints;
 
     std::unique_ptr<typename Curve::Point[]> bucketMatrix(new typename Curve::Point[matrixSize]);
     std::unique_ptr<typename Curve::Point[]> chunks(new typename Curve::Point[nChunks]);
+    std::unique_ptr<int16_t[]> slicedScalars(new int16_t[nSlices]);
+
+    #pragma omp parallel for
+    for (int i = 0; i < nPoints; i++) {
+        int16_t carry = 0;
+
+        for (int j = 0; j < nChunks; j++) {
+            int16_t bucketIndex = getBucketIndex(i, j) + carry;
+
+            if (bucketIndex > nBuckets) {
+                bucketIndex -= nBuckets*2;
+                carry = 1;
+            } else {
+                carry = 0;
+            }
+
+            slicedScalars[i*nChunks + j] = bucketIndex;
+        }
+    }
 
     #pragma omp parallel for
     for (int j = 0; j < nChunks; j++) {
@@ -58,12 +78,13 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
         }
 
         for (int i = 0; i < nPoints; i++) {
-            const int bucketIndex = getBucketIndex(i, j);
+            const int16_t bucketIndex = slicedScalars[i*nChunks + j];
 
             if (bucketIndex > 0) {
-                typename Curve::Point &bucket = buckets[bucketIndex];
+                g.add(buckets[bucketIndex-1], buckets[bucketIndex-1], _bases[i]);
 
-                g.add(bucket, bucket, _bases[i]);
+            } else if (bucketIndex < 0) {
+                g.sub(buckets[-bucketIndex-1], buckets[-bucketIndex-1], _bases[i]);
             }
         }
 
@@ -72,7 +93,7 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
         g.copy(t, buckets[nBuckets - 1]);
         g.copy(tmp, t);
 
-        for (int i = nBuckets - 2; i >= 1 ; i--) {
+        for (int i = nBuckets - 2; i >= 0 ; i--) {
             g.add(tmp, tmp, buckets[i]);
             g.add(t, t, tmp);
         }
