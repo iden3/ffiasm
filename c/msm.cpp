@@ -24,7 +24,12 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
 
     scalars = _scalars;
     scalarSize = _scalarSize;
+
+#ifdef MSM_BITS_PER_CHUNK
+    bitsPerChunk = MSM_BITS_PER_CHUNK;
+#else
     bitsPerChunk = calcBitsPerChunk(nPoints, scalarSize);
+#endif
 
     if (nPoints == 0) {
         g.copy(r, g.zero());
