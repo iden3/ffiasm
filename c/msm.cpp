@@ -46,12 +46,12 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
 
     #pragma omp parallel for
     for (int i = 0; i < nPoints; i++) {
-        int16_t carry = 0;
+        int carry = 0;
 
         for (int j = 0; j < nChunks; j++) {
-            int16_t bucketIndex = getBucketIndex(i, j) + carry;
+            int bucketIndex = getBucketIndex(i, j) + carry;
 
-            if (bucketIndex > nBuckets) {
+            if (bucketIndex >= nBuckets) {
                 bucketIndex -= nBuckets*2;
                 carry = 1;
             } else {
@@ -78,7 +78,7 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
         }
 
         for (int i = 0; i < nPoints; i++) {
-            const int16_t bucketIndex = slicedScalars[i*nChunks + j];
+            const int bucketIndex = slicedScalars[i*nChunks + j];
 
             if (bucketIndex > 0) {
                 g.add(buckets[bucketIndex-1], buckets[bucketIndex-1], _bases[i]);
