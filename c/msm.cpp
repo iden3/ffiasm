@@ -47,7 +47,7 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
 
     std::unique_ptr<typename Curve::Point[]> bucketMatrix(new typename Curve::Point[matrixSize]);
     std::unique_ptr<typename Curve::Point[]> chunks(new typename Curve::Point[nChunks]);
-    std::unique_ptr<int16_t[]> slicedScalars(new int16_t[nSlices]);
+    std::unique_ptr<int32_t[]> slicedScalars(new int32_t[nSlices]);
 
     #pragma omp parallel for
     for (int i = 0; i < nPoints; i++) {
