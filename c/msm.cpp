@@ -11,7 +11,7 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
                                 uint64_t _nThreads)
 {
     const uint64_t nPoints = _n;
-    const uint64_t nThreads = threadCount();
+    const uint64_t nThreads = _nThreads==0 ? threadCount() : _nThreads;
 
     scalars = _scalars;
     scalarSize = _scalarSize;

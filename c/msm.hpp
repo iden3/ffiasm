@@ -15,7 +15,8 @@ class MSM {
 
 private:
     uint64_t calcAddsCount(uint64_t nPoints, uint64_t scalarSize, uint64_t bitsPerChunk) const {
-        return (8 * scalarSize / bitsPerChunk) * (nPoints + 2 * (1 << (bitsPerChunk-1)) + bitsPerChunk + 1);
+        return calcChunkCount(scalarSize, bitsPerChunk)
+                * (nPoints + ((uint64_t)1 << bitsPerChunk) + bitsPerChunk + 1);
     }
 
     uint64_t calcBitsPerChunk(uint64_t n, uint64_t scalarSize) const {
@@ -38,7 +39,7 @@ private:
     }
 
     uint64_t calcBucketCount(uint64_t bitsPerChunk) const {
-        return (1 << (bitsPerChunk-1));
+        return ((uint64_t)1 << (bitsPerChunk-1));
     }
 
     uint64_t getBucketIndex(uint64_t scalarIdx, uint64_t chunkIdx) const {
@@ -53,7 +54,7 @@ private:
         uint64_t v = *(uint64_t *)(scalars + scalarIdx*scalarSize + byteStart);
 
         v = v >> shift;
-        v = v & ( (1 << efectiveBitsPerChunk) - 1);
+        v = v & ( ((uint64_t)1 << efectiveBitsPerChunk) - 1);
 
         return uint64_t(v);
     }
