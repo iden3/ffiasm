@@ -29,10 +29,9 @@ static inline u_int64_t BR(u_int64_t x, u_int64_t domainPow)
 #define ROOT(s,j) (rootsOfUnit[(1<<(s))+(j)])
 
 template <typename Field>
-FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads) {
-
-    nThreads = _nThreads==0 ? threadCount() : _nThreads;
-
+FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads)
+    : threadPool(ThreadPool::defaultPool())
+{
     f = Field::field;
 
     u_int32_t domainPow = log2(maxDomainSize);
@@ -89,7 +88,7 @@ FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads) {
         f.fromMpz(powTwoInv[1], m_aux);
     }
 
-    parallelBlock(nThreads, [&] (int idThread, int nThreads) {
+    threadPool.parallelBlock([&] (int idThread, int nThreads) {
 
         uint64_t increment = nRoots / nThreads;
         uint64_t start = idThread==0 ? 2 : idThread * increment;
@@ -159,7 +158,8 @@ void FFT<Field>::reversePermutation(Element *a, u_int64_t n) {
 template <typename Field>
 void FFT<Field>::reversePermutation(Element *a, u_int64_t n) {
     int domainPow = log2(n);
-    parallelFor(0, n, nThreads, [&] (int begin, int end, int numThread) {
+
+    threadPool.parallelFor(0, n, [&] (int begin, int end, int numThread) {
         for (u_int64_t i=begin; i<end; i++) {
             Element tmp;
             u_int64_t r = BR(i, domainPow);
@@ -182,7 +182,7 @@ void FFT<Field>::fft(Element *a, u_int64_t n) {
         u_int64_t m = 1 << s;
         u_int64_t mdiv2 = m >> 1;
 
-        parallelFor(0, (n>>1), nThreads, [&] (int begin, int end, int numThread) {
+        threadPool.parallelFor(0, (n>>1), [&] (int begin, int end, int numThread) {
             for (u_int64_t i=begin; i< end; i++) {
                 Element t;
                 Element u;
@@ -204,7 +204,7 @@ void FFT<Field>::ifft(Element *a, u_int64_t n ) {
     u_int64_t domainPow =log2(n);
     u_int64_t nDiv2= n >> 1; 
 
-    parallelFor(1, nDiv2, nThreads, [&] (int begin, int end, int numThread) {
+    threadPool.parallelFor(1, nDiv2, [&] (int begin, int end, int numThread) {
         for (u_int64_t i=begin; i<end; i++) {
             Element tmp;
             u_int64_t r = n-i;

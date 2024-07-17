@@ -10,8 +10,10 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
                                 uint64_t _n,
                                 uint64_t _nThreads)
 {
+    ThreadPool &threadPool = ThreadPool::defaultPool();
+
+    const uint64_t nThreads = threadPool.getThreadCount();
     const uint64_t nPoints = _n;
-    const uint64_t nThreads = _nThreads==0 ? threadCount() : _nThreads;
 
     scalars = _scalars;
     scalarSize = _scalarSize;
@@ -40,7 +42,7 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
     std::unique_ptr<typename Curve::Point[]> chunks(new typename Curve::Point[nChunks]);
     std::unique_ptr<int32_t[]> slicedScalars(new int32_t[nSlices]);
 
-    parallelFor(0, nPoints, nThreads, [&] (int begin, int end, int numThread) {
+    threadPool.parallelFor(0, nPoints, [&] (int begin, int end, int numThread) {
 
         for (int i = begin; i < end; i++) {
             int carry = 0;
@@ -60,7 +62,7 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
         }
     });
 
-    parallelFor(0, nChunks, nThreads, [&] (int begin, int end, int numThread) {
+    threadPool.parallelFor(0, nChunks, [&] (int begin, int end, int numThread) {
 
         for (int j = begin; j < end; j++) {
 
