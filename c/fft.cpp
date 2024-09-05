@@ -1,8 +1,6 @@
 #include <thread>
 #include <vector>
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
+#include "misc.hpp"
 
 using namespace std;
 
@@ -31,12 +29,9 @@ static inline u_int64_t BR(u_int64_t x, u_int64_t domainPow)
 #define ROOT(s,j) (rootsOfUnit[(1<<(s))+(j)])
 
 template <typename Field>
-FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads) {
-#ifdef _OPENMP
-    nThreads = _nThreads==0 ? omp_get_max_threads() : _nThreads;
-#else
-    nThreads = 1;
-#endif
+FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads)
+    : threadPool(ThreadPool::defaultPool())
+{
     f = Field::field;
 
     u_int32_t domainPow = log2(maxDomainSize);
@@ -92,15 +87,9 @@ FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads) {
         mpz_invert(m_aux, m_aux, m_q);
         f.fromMpz(powTwoInv[1], m_aux);
     }
-    #pragma omp parallel
-    {
-#ifdef _OPENMP
-        int idThread = omp_get_thread_num();
-        int nThreads = omp_get_num_threads();
-#else
-        int idThread = 0;
-        int nThreads = 1;
-#endif
+
+    threadPool.parallelBlock([&] (int idThread, int nThreads) {
+
         uint64_t increment = nRoots / nThreads;
         uint64_t start = idThread==0 ? 2 : idThread * increment;
         uint64_t end   = idThread==nThreads-1 ? nRoots : (idThread+1) * increment;
@@ -110,7 +99,7 @@ FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads) {
         for (uint64_t i=start+1; i<end; i++) {
             f.mul(roots[i], roots[i-1], roots[1]);
         }
-    }
+    });
     Element aux;
     f.mul(aux, roots[nRoots-1], roots[1] );
     assert(f.eq(aux, f.one()));
@@ -169,16 +158,18 @@ void FFT<Field>::reversePermutation(Element *a, u_int64_t n) {
 template <typename Field>
 void FFT<Field>::reversePermutation(Element *a, u_int64_t n) {
     int domainPow = log2(n);
-    #pragma omp parallel for
-    for (u_int64_t i=0; i<n; i++) {
-        Element tmp;
-        u_int64_t r = BR(i, domainPow);
-        if (i>r) {
-            f.copy(tmp, a[i]);
-            f.copy(a[i], a[r]);
-            f.copy(a[r], tmp);
+
+    threadPool.parallelFor(0, n, [&] (int begin, int end, int numThread) {
+        for (u_int64_t i=begin; i<end; i++) {
+            Element tmp;
+            u_int64_t r = BR(i, domainPow);
+            if (i>r) {
+                f.copy(tmp, a[i]);
+                f.copy(a[i], a[r]);
+                f.copy(a[r], tmp);
+            }
         }
-    }
+    });
 }
 
 
@@ -190,18 +181,20 @@ void FFT<Field>::fft(Element *a, u_int64_t n) {
     for (u_int32_t s=1; s<=domainPow; s++) {
         u_int64_t m = 1 << s;
         u_int64_t mdiv2 = m >> 1;
-        #pragma omp parallel for
-        for (u_int64_t i=0; i< (n>>1); i++) {
-            Element t;
-            Element u;
-            u_int64_t k=(i/mdiv2)*m;
-            u_int64_t j=i%mdiv2;
 
-            f.mul(t, root(s, j), a[k+j+mdiv2]);
-            f.copy(u,a[k+j]);
-            f.add(a[k+j], t, u);
-            f.sub(a[k+j+mdiv2], u, t);
-        }
+        threadPool.parallelFor(0, (n>>1), [&] (int begin, int end, int numThread) {
+            for (u_int64_t i=begin; i< end; i++) {
+                Element t;
+                Element u;
+                u_int64_t k=(i/mdiv2)*m;
+                u_int64_t j=i%mdiv2;
+
+                f.mul(t, root(s, j), a[k+j+mdiv2]);
+                f.copy(u,a[k+j]);
+                f.add(a[k+j], t, u);
+                f.sub(a[k+j+mdiv2], u, t);
+            }
+        });
     }
 }
 
@@ -210,14 +203,16 @@ void FFT<Field>::ifft(Element *a, u_int64_t n ) {
     fft(a, n);
     u_int64_t domainPow =log2(n);
     u_int64_t nDiv2= n >> 1; 
-    #pragma omp parallel for
-    for (u_int64_t i=1; i<nDiv2; i++) {
-        Element tmp;
-        u_int64_t r = n-i;
-        f.copy(tmp, a[i]);
-        f.mul(a[i], a[r], powTwoInv[domainPow]);
-        f.mul(a[r], tmp, powTwoInv[domainPow]);
-    } 
+
+    threadPool.parallelFor(1, nDiv2, [&] (int begin, int end, int numThread) {
+        for (u_int64_t i=begin; i<end; i++) {
+            Element tmp;
+            u_int64_t r = n-i;
+            f.copy(tmp, a[i]);
+            f.mul(a[i], a[r], powTwoInv[domainPow]);
+            f.mul(a[r], tmp, powTwoInv[domainPow]);
+        }
+    });
     f.mul(a[0], a[0], powTwoInv[domainPow]);
     f.mul(a[n >> 1], a[n >> 1], powTwoInv[domainPow]);
 }

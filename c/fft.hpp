@@ -10,7 +10,7 @@ class FFT {
     Element nqr;
     Element *roots;
     Element *powTwoInv;
-    u_int32_t nThreads;
+    ThreadPool &threadPool;
 
     void reversePermutationInnerLoop(Element *a, u_int64_t from, u_int64_t to, u_int32_t domainPow);
     void reversePermutation(Element *a, u_int64_t n);
