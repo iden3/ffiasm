@@ -3,52 +3,53 @@
 #include "misc.hpp"
 
 template <typename Curve, typename BaseField>
+uint64_t MSM<Curve, BaseField>::getBitsPerChunk(uint64_t n, uint64_t scalarSize) const
+{
+#ifdef MSM_BITS_PER_CHUNK
+    return MSM_BITS_PER_CHUNK;
+#else
+    return calcBitsPerChunk(n, scalarSize);
+#endif
+}
+
+template <typename Curve, typename BaseField>
 void MSM<Curve, BaseField>::run(typename Curve::Point &r,
                                 typename Curve::PointAffine *_bases,
                                 uint8_t* _scalars,
                                 uint64_t _scalarSize,
-                                uint64_t _n,
+                                uint64_t nPoints,
                                 uint64_t _nThreads)
 {
-    ThreadPool &threadPool = ThreadPool::defaultPool();
-
-    const uint64_t nThreads = threadPool.getThreadCount();
-    const uint64_t nPoints = _n;
-
-    scalars = _scalars;
-    scalarSize = _scalarSize;
-
-#ifdef MSM_BITS_PER_CHUNK
-    bitsPerChunk = MSM_BITS_PER_CHUNK;
-#else
-    bitsPerChunk = calcBitsPerChunk(nPoints, scalarSize);
-#endif
-
     if (nPoints == 0) {
         g.copy(r, g.zero());
         return;
     }
     if (nPoints == 1) {
-        g.mulByScalar(r, _bases[0], scalars, scalarSize);
+        g.mulByScalar(r, _bases[0], _scalars, _scalarSize);
         return;
     }
 
-    const uint64_t nChunks = calcChunkCount(scalarSize, bitsPerChunk);
+    ThreadPool &threadPool = ThreadPool::defaultPool();
+
+    scalars = _scalars;
+    scalarSize = _scalarSize;
+    bitsPerChunk = getBitsPerChunk(nPoints, scalarSize);
+
+    const uint64_t nThreads = threadPool.getThreadCount();
+    const uint64_t nChunks  = calcChunkCount(scalarSize, bitsPerChunk);
     const uint64_t nBuckets = calcBucketCount(bitsPerChunk);
-    const uint64_t matrixSize = nThreads * nBuckets;
-    const uint64_t nSlices = nChunks*nPoints;
 
-    std::unique_ptr<typename Curve::Point[]> bucketMatrix(new typename Curve::Point[matrixSize]);
-    std::unique_ptr<typename Curve::Point[]> chunks(new typename Curve::Point[nChunks]);
-    std::unique_ptr<int32_t[]> slicedScalars(new int32_t[nSlices]);
+    std::vector<typename Curve::Point> bucketMatrix(nThreads * nBuckets);
+    std::vector<typename Curve::Point> chunks(nChunks);
+    std::vector<int32_t>               slicedScalars(nChunks * nPoints);
 
-    threadPool.parallelFor(0, nPoints, [&] (int begin, int end, int numThread) {
+    threadPool.parallelFor(0, nPoints, [&] (int64_t begin, int64_t end, uint64_t idThread) {
 
-        for (int i = begin; i < end; i++) {
-            int carry = 0;
+        for (int64_t i = begin; i < end; i++) {
+            int32_t carry = 0;
 
-            for (int j = 0; j < nChunks; j++) {
-                int bucketIndex = getBucketIndex(i, j) + carry;
+            for (int64_t j = 0; j < nChunks; j++) {
+                int32_t bucketIndex = getBucketIndex(i, j) + carry;
 
                 if (bucketIndex >= nBuckets) {
                     bucketIndex -= nBuckets*2;
@@ -62,18 +63,18 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
         }
     });
 
-    threadPool.parallelFor(0, nChunks, [&] (int begin, int end, int numThread) {
+    threadPool.parallelFor(0, nChunks, [&] (int64_t begin, int64_t end, uint64_t idThread) {
 
-        for (int j = begin; j < end; j++) {
+        for (int64_t j = begin; j < end; j++) {
 
-            typename Curve::Point *buckets = &bucketMatrix[numThread*nBuckets];
+            typename Curve::Point *buckets = &bucketMatrix[idThread*nBuckets];
 
-            for (int i = 0; i < nBuckets; i++) {
+            for (int64_t i = 0; i < nBuckets; i++) {
                 g.copy(buckets[i], g.zero());
             }
 
-            for (int i = 0; i < nPoints; i++) {
-                const int bucketIndex = slicedScalars[i*nChunks + j];
+            for (int64_t i = 0; i < nPoints; i++) {
+                const int64_t bucketIndex = slicedScalars[i*nChunks + j];
 
                 if (bucketIndex > 0) {
                     g.add(buckets[bucketIndex-1], buckets[bucketIndex-1], _bases[i]);
@@ -88,7 +89,7 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
             g.copy(t, buckets[nBuckets - 1]);
             g.copy(tmp, t);
 
-            for (int i = nBuckets - 2; i >= 0 ; i--) {
+            for (int64_t i = nBuckets - 2; i >= 0 ; i--) {
                 g.add(tmp, tmp, buckets[i]);
                 g.add(t, t, tmp);
             }
@@ -99,8 +100,8 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
 
     g.copy(r, chunks[nChunks - 1]);
 
-    for (int j = nChunks - 2; j >= 0; j--) {
-        for (int i = 0; i < bitsPerChunk; i++) {
+    for (int64_t j = nChunks - 2; j >= 0; j--) {
+        for (int64_t i = 0; i < bitsPerChunk; i++) {
             g.dbl(r, r);
         }
         g.add(r, r, chunks[j]);

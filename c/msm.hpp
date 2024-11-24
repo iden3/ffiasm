@@ -35,7 +35,7 @@ private:
     }
 
     uint64_t calcChunkCount(uint64_t scalarSize, uint64_t bitsPerChunk) const {
-        return ((scalarSize * 8 - 1 ) / bitsPerChunk) + 1;
+        return ((scalarSize * 8 - 1) / bitsPerChunk) + 1;
     }
 
     uint64_t calcBucketCount(uint64_t bitsPerChunk) const {
@@ -58,6 +58,8 @@ private:
 
         return uint64_t(v);
     }
+
+    uint64_t getBitsPerChunk(uint64_t n, uint64_t scalarSize) const;
 
 public:
     MSM(Curve &_g): g(_g) {}

@@ -1,5 +1,6 @@
 #include <thread>
 #include <vector>
+#include <iostream>
 #include "misc.hpp"
 
 using namespace std;
@@ -88,7 +89,7 @@ FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads)
         f.fromMpz(powTwoInv[1], m_aux);
     }
 
-    threadPool.parallelBlock([&] (int idThread, int nThreads) {
+    threadPool.parallelBlock([&] (uint64_t idThread, uint64_t nThreads) {
 
         uint64_t increment = nRoots / nThreads;
         uint64_t start = idThread==0 ? 2 : idThread * increment;
@@ -159,7 +160,7 @@ template <typename Field>
 void FFT<Field>::reversePermutation(Element *a, u_int64_t n) {
     int domainPow = log2(n);
 
-    threadPool.parallelFor(0, n, [&] (int begin, int end, int numThread) {
+    threadPool.parallelFor(0, n, [&] (int64_t begin, int64_t end, uint64_t idThread) {
         for (u_int64_t i=begin; i<end; i++) {
             Element tmp;
             u_int64_t r = BR(i, domainPow);
@@ -182,7 +183,7 @@ void FFT<Field>::fft(Element *a, u_int64_t n) {
         u_int64_t m = 1 << s;
         u_int64_t mdiv2 = m >> 1;
 
-        threadPool.parallelFor(0, (n>>1), [&] (int begin, int end, int numThread) {
+        threadPool.parallelFor(0, (n>>1), [&] (int64_t begin, int64_t end, uint64_t idThread) {
             for (u_int64_t i=begin; i< end; i++) {
                 Element t;
                 Element u;
@@ -204,7 +205,7 @@ void FFT<Field>::ifft(Element *a, u_int64_t n ) {
     u_int64_t domainPow =log2(n);
     u_int64_t nDiv2= n >> 1; 
 
-    threadPool.parallelFor(1, nDiv2, [&] (int begin, int end, int numThread) {
+    threadPool.parallelFor(1, nDiv2, [&] (int64_t begin, int64_t end, uint64_t idThread) {
         for (u_int64_t i=begin; i<end; i++) {
             Element tmp;
             u_int64_t r = n-i;

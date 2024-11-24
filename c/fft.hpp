@@ -1,6 +1,8 @@
 #ifndef FFT_H
 #define FFT_H
 
+#include "misc.hpp"
+
 template <typename Field>
 class FFT {
     Field f;

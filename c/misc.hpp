@@ -55,7 +55,7 @@ class ThreadWorker
             {
                 std::unique_lock<std::mutex> lock(mutex);
 
-                occupied.wait(lock, [this]{return task != nullptr || stop;});
+                occupied.wait(lock, [this]{return task || stop;});
 
                 if (stop) {
                     return;
@@ -93,22 +93,22 @@ public:
     void wait() {
         std::unique_lock<std::mutex> lock(mutex);
 
-        finished.wait(lock, [this]{return task == nullptr;});
+        finished.wait(lock, [this]{return !task;});
     }
 };
 
 class ThreadPool {
-    unsigned int nThreads;
+    uint64_t nThreads;
     std::vector<ThreadWorker> workers;
 
 public:
-    ThreadPool(unsigned int _nThreads = 0) :
+    ThreadPool(uint64_t _nThreads = 0) :
         nThreads(_nThreads==0 ? defaultThreadCount() : _nThreads),
         workers(nThreads-1)
     { }
 
-    static unsigned int defaultThreadCount() {
-        unsigned int n = std::thread::hardware_concurrency();
+    static uint64_t defaultThreadCount() {
+        const uint64_t n = std::thread::hardware_concurrency();
 
         return n == 0 ? 1 : n;
     }
@@ -119,24 +119,22 @@ public:
         return pool;
     }
 
-    unsigned int getThreadCount() const {
+    uint64_t getThreadCount() const {
         return nThreads;
     }
 
-    static std::vector<int> divideWork(int elementCount, int threadCount) {
-        assert(elementCount > 0);
-        assert(threadCount > 0);
+    static std::vector<uint64_t> divideWork(uint64_t elementCount, uint64_t threadCount) {
 
         if (elementCount <= threadCount) {
-            return std::vector<int>(elementCount, 1);
+            return std::vector<uint64_t>(elementCount, 1);
         }
 
-        const int jobSize = elementCount / threadCount;
-        const int elementRest = elementCount % threadCount;
+        const uint64_t jobSize = elementCount / threadCount;
+        const uint64_t elementRest = elementCount % threadCount;
 
-        std::vector<int> jobs(threadCount, jobSize);
+        std::vector<uint64_t> jobs(threadCount, jobSize);
 
-        for (int i = 0; i < elementRest; i++) {
+        for (int64_t i = 0; i < elementRest; i++) {
             jobs[i] += 1;
         }
 
@@ -144,27 +142,36 @@ public:
     }
 
     template<typename Func>
-    void parallelFor(int begin, int end, Func&& func) {
+    void parallelFor(int64_t begin, int64_t end, Func&& func) {
 
-        const int  elementCount = end - begin;
-        const auto jobs = divideWork(elementCount, nThreads);
-        int jobBegin = begin;
-        int k = 0;
+        if (begin >= end) {
+            return;
+        }
 
-        for (; k < jobs.size() - 1; jobBegin += jobs[k++]) {
-            workers[k].submit([=]{func(jobBegin, jobBegin + jobs[k], k);});
+        const uint64_t elementCount = end - begin;
+        const auto     jobs = divideWork(elementCount, nThreads);
+        const int64_t  jobCount = jobs.size();
+        uint64_t       jobBegin = begin;
+        int64_t        k = 0;
+
+        for (; k < jobCount - 1; k++) {
+            const uint64_t jobEnd = jobBegin + jobs[k];
+
+            workers[k].submit([=]{func(jobBegin, jobEnd, k);});
+
+            jobBegin = jobEnd;
         }
 
         func(jobBegin, jobBegin + jobs[k], k);
 
-        for (k = 0; k < jobs.size() - 1; k++) {
+        for (k = 0; k < jobCount - 1; k++) {
             workers[k].wait();
         }
     }
 
     template<typename Func>
     void parallelBlock(Func&& func) {
-        int  k = 0;
+        int64_t k = 0;
 
         for (; k < nThreads - 1; k++) {
             workers[k].submit([=]{func(k, nThreads);});
