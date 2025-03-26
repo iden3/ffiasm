@@ -3,28 +3,28 @@
 
 #include <cstdint>
 
-template <typename Curve, typename BaseField>
-class MSM {
-    const uint64_t MIN_CHUNK_SIZE_BITS = 3;
-    const uint64_t MAX_CHUNK_SIZE_BITS = 16;
+class MSMParams {
+    static const uint64_t MIN_CHUNK_SIZE_BITS = 3;
+    static const int64_t MAX_CHUNK_SIZE_BITS = 16;
 
-    Curve &g;
-    uint8_t *scalars;
+    uint64_t nPoints;
     uint64_t scalarSize;
     uint64_t bitsPerChunk;
+    uint64_t nChunks;
+    uint64_t nBuckets;
 
 private:
-    uint64_t calcAddsCount(uint64_t nPoints, uint64_t scalarSize, uint64_t bitsPerChunk) const {
+    uint64_t calcAddCount(uint64_t nPoints, uint64_t scalarSize, uint64_t bitsPerChunk) const {
         return calcChunkCount(scalarSize, bitsPerChunk)
                 * (nPoints + ((uint64_t)1 << bitsPerChunk) + bitsPerChunk + 1);
     }
 
     uint64_t calcBitsPerChunk(uint64_t n, uint64_t scalarSize) const {
         uint64_t bitsPerChunk = MIN_CHUNK_SIZE_BITS;
-        uint64_t minAdds = calcAddsCount(n, scalarSize, bitsPerChunk);
+        uint64_t minAdds = calcAddCount(n, scalarSize, bitsPerChunk);
 
         for (uint64_t k = MIN_CHUNK_SIZE_BITS + 1; k <= MAX_CHUNK_SIZE_BITS; k++) {
-            const uint64_t curAdds = calcAddsCount(n, scalarSize, k);
+            const uint64_t curAdds = calcAddCount(n, scalarSize, k);
 
             if (curAdds < minAdds) {
                 minAdds = curAdds;
@@ -42,6 +42,43 @@ private:
         return ((uint64_t)1 << (bitsPerChunk-1));
     }
 
+    uint64_t chooseBitsPerChunk(uint64_t nPoints, uint64_t scalarSize) const
+    {
+    #ifdef MSM_BITS_PER_CHUNK
+        return MSM_BITS_PER_CHUNK;
+    #else
+        return calcBitsPerChunk(nPoints, scalarSize);
+    #endif
+    }
+
+public:
+    MSMParams(uint64_t nPoints, uint64_t scalarSize)
+        : nPoints(nPoints)
+        , scalarSize(scalarSize)
+    {
+        bitsPerChunk = chooseBitsPerChunk(nPoints, scalarSize);
+        nChunks = calcChunkCount(scalarSize, bitsPerChunk);
+        nBuckets = calcBucketCount(bitsPerChunk);
+    }
+
+    uint64_t getPointCount()   const { return nPoints; }
+    uint64_t getScalarSize()   const { return scalarSize; }
+    uint64_t getBitsPerChunk() const { return bitsPerChunk; }
+    uint64_t getChunkCount()   const { return nChunks; }
+    uint64_t getBucketCount()  const { return nBuckets; }
+    uint64_t getAddCount()     const { return calcAddCount(nPoints, scalarSize, bitsPerChunk); }
+};
+
+
+template <typename Curve, typename BaseField>
+class MSM {
+
+    Curve &g;
+    uint8_t *scalars;
+    uint64_t scalarSize;
+    uint64_t bitsPerChunk;
+
+private:
     uint64_t getBucketIndex(uint64_t scalarIdx, uint64_t chunkIdx) const {
         uint64_t bitStart = chunkIdx*bitsPerChunk;
         uint64_t byteStart = bitStart/8;
@@ -58,8 +95,6 @@ private:
 
         return uint64_t(v);
     }
-
-    uint64_t getBitsPerChunk(uint64_t n, uint64_t scalarSize) const;
 
 public:
     MSM(Curve &_g): g(_g) {}

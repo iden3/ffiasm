@@ -3,16 +3,6 @@
 #include "misc.hpp"
 
 template <typename Curve, typename BaseField>
-uint64_t MSM<Curve, BaseField>::getBitsPerChunk(uint64_t n, uint64_t scalarSize) const
-{
-#ifdef MSM_BITS_PER_CHUNK
-    return MSM_BITS_PER_CHUNK;
-#else
-    return calcBitsPerChunk(n, scalarSize);
-#endif
-}
-
-template <typename Curve, typename BaseField>
 void MSM<Curve, BaseField>::run(typename Curve::Point &r,
                                 typename Curve::PointAffine *_bases,
                                 uint8_t* _scalars,
@@ -30,14 +20,15 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
     }
 
     ThreadPool &threadPool = ThreadPool::defaultPool();
+    MSMParams  msmParams(nPoints, _scalarSize);
 
     scalars = _scalars;
     scalarSize = _scalarSize;
-    bitsPerChunk = getBitsPerChunk(nPoints, scalarSize);
+    bitsPerChunk = msmParams.getBitsPerChunk();
 
     const uint64_t nThreads = threadPool.getThreadCount();
-    const uint64_t nChunks  = calcChunkCount(scalarSize, bitsPerChunk);
-    const uint64_t nBuckets = calcBucketCount(bitsPerChunk);
+    const uint64_t nChunks  = msmParams.getChunkCount();
+    const uint64_t nBuckets = msmParams.getBucketCount();
 
     std::vector<typename Curve::Point> bucketMatrix(nThreads * nBuckets);
     std::vector<typename Curve::Point> chunks(nChunks);
