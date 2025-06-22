@@ -2,13 +2,14 @@
 #define MSM_HPP
 
 #include <cstdint>
+#include <algorithm>
 
 class MSMParams {
     static const uint64_t MIN_CHUNK_SIZE_BITS = 3;
     static const int64_t MAX_CHUNK_SIZE_BITS = 16;
 
     uint64_t nPoints;
-    uint64_t scalarSize;
+    uint64_t scalarSize;    // in bytes
     uint64_t bitsPerChunk;
     uint64_t nChunks;
     uint64_t nBuckets;
@@ -52,11 +53,15 @@ private:
     }
 
 public:
-    MSMParams(uint64_t nPoints, uint64_t scalarSize)
-        : nPoints(nPoints)
-        , scalarSize(scalarSize)
+    MSMParams(uint64_t nPoints, uint64_t scalarSize, uint64_t nBitsPerChunk = 0)
+        : nPoints(std::max(nPoints, UINT64_C(2)))
+        , scalarSize(std::max(scalarSize, UINT64_C(1)))
+        , bitsPerChunk(nBitsPerChunk)
     {
-        bitsPerChunk = chooseBitsPerChunk(nPoints, scalarSize);
+        if (bitsPerChunk < MIN_CHUNK_SIZE_BITS) {
+            bitsPerChunk = chooseBitsPerChunk(nPoints, scalarSize);
+        }
+
         nChunks = calcChunkCount(scalarSize, bitsPerChunk);
         nBuckets = calcBucketCount(bitsPerChunk);
     }

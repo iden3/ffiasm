@@ -1,3 +1,4 @@
+#include "curve.hpp"
 #include <sstream>
 
 template <typename BaseField>

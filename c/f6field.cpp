@@ -1,3 +1,4 @@
+#include "f6field.hpp"
 #include "splitparstr.hpp"
 #include "assert.h"
 #include <sstream>

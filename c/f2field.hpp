@@ -1,3 +1,6 @@
+#ifndef F2FIELD_HPP
+#define F2FIELD_HPP
+
 #include <string>
 
 template <typename BaseField>
@@ -58,3 +61,5 @@ public:
 };
 
 #include "f2field.cpp"
+
+#endif // F2FIELD_HPP

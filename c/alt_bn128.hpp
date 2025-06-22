@@ -77,4 +77,4 @@ namespace AltBn128 {
 
 }  // Namespace
 
-#endif
+#endif // ALT_BN128_HPP

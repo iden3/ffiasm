@@ -1,3 +1,6 @@
+#ifndef F6FIELD_HPP
+#define F6FIELD_HPP
+
 #include <string>
 
 template <typename BaseField>
@@ -57,3 +60,5 @@ public:
 };
 
 #include "f6field.cpp"
+
+#endif // F6FIELD_HPP

@@ -1,8 +1,10 @@
-#include <string>
+#ifndef CURVE_HPP
+#define CURVE_HPP
 
-#include "exp.hpp"
 #include "multiexp.hpp"
 #include "msm.hpp"
+#include "exp.hpp"
+#include <string>
 
 template <typename BaseField>
 class Curve {
@@ -140,6 +142,6 @@ public:
 
 };
 
-
-
 #include "curve.cpp"
+
+#endif // CURVE_HPP

@@ -1,6 +1,8 @@
+#ifndef EXP_HPP
+#define EXP_HPP
+
 #include <stdint.h>
 #include <iostream>
-
 #include "naf.hpp"
 
 template <typename BaseGroup, typename BaseGroupElementIn, typename BaseGroupElementOut>
@@ -27,3 +29,4 @@ void nafMulByScalar(BaseGroup &G, BaseGroupElementOut& r, BaseGroupElementIn& ba
     delete[] naf;
 }
 
+#endif // EXP_HPP

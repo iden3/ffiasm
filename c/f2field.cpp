@@ -1,3 +1,4 @@
+#include "f2field.hpp"
 #include "splitparstr.hpp"
 #include "assert.h"
 #include <sstream>

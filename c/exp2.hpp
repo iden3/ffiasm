@@ -1,3 +1,6 @@
+#ifndef EXP2_HPP
+#define EXP2_HPP
+
 #include <stdint.h>
 #include <iostream>
 
@@ -26,3 +29,5 @@ void exp(Field::Element& res, Field::Element& base, uint8_t* scalar, unsigned in
 
     delete [] naf;
 }
+
+#endif // EXP2_HPP

@@ -1,6 +1,6 @@
-#include <memory>
 #include "msm.hpp"
 #include "misc.hpp"
+#include <memory>
 
 template <typename Curve, typename BaseField>
 void MSM<Curve, BaseField>::run(typename Curve::Point &r,

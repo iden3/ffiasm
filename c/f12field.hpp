@@ -1,3 +1,7 @@
+#ifndef F12FIELD_HPP
+#define F12FIELD_HPP
+
+#include "f12field.hpp"
 #include <string>
 
 template <typename BaseField>
@@ -50,3 +54,5 @@ public:
 };
 
 #include "f12field.cpp"
+
+#endif // F12FIELD_HPP

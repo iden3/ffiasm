@@ -1,9 +1,11 @@
+#include "multiexp.hpp"
+#include "misc.hpp"
+#include <memory.h>
+
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
-#include <memory.h>
-#include "misc.hpp"
-#include "multiexp.hpp"
+
 /*
 template <typename Curve>
 void ParallelMultiexp<Curve>::initAccs() {
