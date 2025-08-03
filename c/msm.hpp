@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <algorithm>
 
+class ThreadPool;
+
 class MSMParams {
     static const uint64_t MIN_CHUNK_SIZE_BITS = 3;
     static const int64_t MAX_CHUNK_SIZE_BITS = 16;
@@ -66,12 +68,13 @@ public:
         nBuckets = calcBucketCount(bitsPerChunk);
     }
 
-    uint64_t getPointCount()   const { return nPoints; }
-    uint64_t getScalarSize()   const { return scalarSize; }
-    uint64_t getBitsPerChunk() const { return bitsPerChunk; }
-    uint64_t getChunkCount()   const { return nChunks; }
-    uint64_t getBucketCount()  const { return nBuckets; }
-    uint64_t getAddCount()     const { return calcAddCount(nPoints, scalarSize, bitsPerChunk); }
+    uint64_t getPointCount()       const { return nPoints; }
+    uint64_t getScalarSize()       const { return scalarSize; }
+    uint64_t getBitsPerChunk()     const { return bitsPerChunk; }
+    uint64_t getChunkCount()       const { return nChunks; }
+    uint64_t getBucketCount()      const { return nBuckets; }
+    uint64_t getBucketCountNoNaf() const { return nBuckets * 2; }
+    uint64_t getAddCount()         const { return calcAddCount(nPoints, scalarSize, bitsPerChunk); }
 };
 
 
@@ -109,7 +112,7 @@ public:
              uint8_t* _scalars,
              uint64_t _scalarSize,
              uint64_t _n,
-             uint64_t _nThreads=0);
+             ThreadPool &threadPool);
 };
 
 #include "msm.cpp"

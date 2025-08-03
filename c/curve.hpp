@@ -6,6 +6,8 @@
 #include "exp.hpp"
 #include <string>
 
+class ThreadPool;
+
 template <typename BaseField>
 class Curve {
 
@@ -130,9 +132,9 @@ public:
     }
 
     void multiMulByScalarMSM(Point &r, PointAffine *bases, uint8_t* scalars, unsigned int scalarSize,
-                             unsigned int n, unsigned int nThreads=0) {
+                             unsigned int n, ThreadPool &threadPool) {
         MSM<Curve<BaseField>, BaseField> msm(*this);
-        msm.run(r, bases, scalars, scalarSize, n, nThreads);
+        msm.run(r, bases, scalars, scalarSize, n, threadPool);
     }
 
 #ifdef COUNT_OPS

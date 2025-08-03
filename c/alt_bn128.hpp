@@ -8,6 +8,7 @@
 #include "f12field.hpp"
 #include "curve.hpp"
 #include <string>
+
 namespace AltBn128 {
 
     typedef RawFq::Element F1Element;

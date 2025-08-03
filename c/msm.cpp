@@ -8,7 +8,7 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
                                 uint8_t* _scalars,
                                 uint64_t _scalarSize,
                                 uint64_t nPoints,
-                                uint64_t _nThreads)
+                                ThreadPool &threadPool)
 {
     if (nPoints == 0) {
         g.copy(r, g.zero());
@@ -19,7 +19,6 @@ void MSM<Curve, BaseField>::run(typename Curve::Point &r,
         return;
     }
 
-    ThreadPool &threadPool = ThreadPool::defaultPool();
     MSMParams  msmParams(nPoints, _scalarSize);
 
     scalars = _scalars;
