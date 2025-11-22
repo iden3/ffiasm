@@ -216,7 +216,7 @@ public:
         }
 
         const auto     jobs = divideWork(begin, end, nThreads);
-        const auto     jobCount = jobs.size();
+        const uint64_t jobCount = jobs.size();
         const int64_t  threadCount = std::min(nThreads, jobCount);
         const uint64_t curThreadId = threadCount - 1;
         int64_t        k = 0;
