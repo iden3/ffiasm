@@ -88,7 +88,7 @@ FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads)
         f.fromMpz(powTwoInv[1], m_aux);
     }
 
-    threadPool.parallelBlock([&] (int idThread, int nThreads) {
+    threadPool.parallelBlock([&] (uint64_t nThreads, uint64_t idThread) {
 
         uint64_t increment = nRoots / nThreads;
         uint64_t start = idThread==0 ? 2 : idThread * increment;
