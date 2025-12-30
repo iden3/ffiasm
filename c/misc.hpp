@@ -154,6 +154,7 @@ class ThreadPool {
     uint64_t nThreads;
     std::vector<ThreadWorker> workers;
     std::shared_ptr<ThreadJobQueue> queue;
+    std::mutex poolMutex;
 
 public:
     ThreadPool(unsigned int _nThreads = 0) :
@@ -215,6 +216,8 @@ public:
             return;
         }
 
+        std::lock_guard<std::mutex> poolLock(poolMutex);
+
         const auto     jobs = divideWork(begin, end, nThreads);
         const uint64_t jobCount = jobs.size();
         const int64_t  threadCount = std::min(nThreads, jobCount);
@@ -250,6 +253,8 @@ public:
 
     template<typename Func>
     void parallelBlock(Func&& func) {
+
+        std::lock_guard<std::mutex> poolLock(poolMutex);
 
         for (int i = 0; i < nThreads - 1; i++) {
             workers[i].setThreadId(i);
