@@ -2,26 +2,30 @@
 
 namespace WtnsUtils {
 
-Header::Header() {
+Header::Header()
+    : n8(0),
+      nVars(0)
+{
 }
 
-Header::~Header() {
-    mpz_clear(prime);
-}
+Header::~Header() = default;
 
 std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile *f) {
-    Header *h = new Header();
+    std::unique_ptr<Header> h(new Header());
+
     f->startReadSection(1);
 
     h->n8 = f->readU32LE();
-    mpz_init(h->prime);
-    mpz_import(h->prime, h->n8, -1, 1, -1, 0, f->read(h->n8));
+    {
+        const uint8_t* p = reinterpret_cast<const uint8_t*>(f->read(h->n8));
+        h->prime.assign(p, p + h->n8);
+    }
 
     h->nVars = f->readU32LE();
 
     f->endReadSection();
 
-    return std::unique_ptr<Header>(h);
+    return h;
 }
 
-} // NAMESPACE
+} // namespace WtnsUtils

@@ -1,17 +1,26 @@
-
 #include "zkey_utils.hpp"
+
+#include <stdexcept>
 
 namespace ZKeyUtils {
 
-
-Header::Header() {
+Header::Header()
+    : n8q(0),
+      n8r(0),
+      nVars(0),
+      nPublic(0),
+      domainSize(0),
+      nCoefs(0),
+      vk_alpha1(nullptr),
+      vk_beta1(nullptr),
+      vk_beta2(nullptr),
+      vk_gamma2(nullptr),
+      vk_delta1(nullptr),
+      vk_delta2(nullptr)
+{
 }
 
-Header::~Header() {
-    mpz_clear(qPrime);
-    mpz_clear(rPrime);
-}
-
+Header::~Header() = default;
 
 std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile *f) {
     auto h = new Header();
@@ -26,12 +35,16 @@ std::unique_ptr<Header> loadHeader(BinFileUtils::BinFile *f) {
     f->startReadSection(2);
 
     h->n8q = f->readU32LE();
-    mpz_init(h->qPrime);
-    mpz_import(h->qPrime, h->n8q, -1, 1, -1, 0, f->read(h->n8q));
+    {
+        const uint8_t* p = reinterpret_cast<const uint8_t*>(f->read(h->n8q));
+        h->qPrime.assign(p, p + h->n8q);
+    }
 
     h->n8r = f->readU32LE();
-    mpz_init(h->rPrime);
-    mpz_import(h->rPrime, h->n8r , -1, 1, -1, 0, f->read(h->n8r));
+    {
+        const uint8_t* p = reinterpret_cast<const uint8_t*>(f->read(h->n8r));
+        h->rPrime.assign(p, p + h->n8r);
+    }
 
     h->nVars = f->readU32LE();
     h->nPublic = f->readU32LE();

@@ -46,28 +46,6 @@ function testSplitParStr() {
     sh("./splitparsestr_test", {cwd: "build", nopipe: true});
 }
 
-function testAltBn128() {
-    sh("g++" +
-        " -Igoogletest-release-1.10.0/googletest/include"+
-        " -I."+
-        " -I../c"+
-        " ../c/naf.cpp"+
-        " ../c/splitparstr.cpp"+
-        " ../c/alt_bn128.cpp"+
-        " ../c/alt_bn128_test.cpp"+
-        " ../c/misc.cpp"+
-        " fq.cpp"+
-        " fq.o"+
-        " fr.cpp"+
-        " fr.o"+
-        " googletest-release-1.10.0/libgtest.a"+
-        " -o altbn128_test" +
-        " -fmax-errors=5 -pthread -std=c++11 -fopenmp -lgmp -g", {cwd: "build", nopipe: true}
-    );
-    sh("./altbn128_test", {cwd: "build", nopipe: true});
-}
-
-
 function benchMultiExpG1() {
     sh("g++ -O3 -g" +
         " -Igoogletest-release-1.10.0/googletest/include"+
