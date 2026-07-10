@@ -38,6 +38,15 @@ private:
     // running-sum cost (2^c bucket additions) would dominate.
     static const uint64_t MIN_POINTS_PER_SLICE = 4096;
 
+    // Batch-affine accumulation: buckets live in affine coordinates and
+    // additions are executed in batches sharing one field inversion
+    // (~5M+1S per addition instead of 9M+2S for an XYZZ mixed add).
+    // Additions that conflict with the pending batch, doublings and
+    // cancellations go to an XYZZ shadow bucket instead. Used only when
+    // the bucket array is large and densely filled enough.
+    static const uint64_t BATCH_SIZE = 512;
+    static const uint64_t MIN_BATCH_AFFINE_CHUNK_BITS = 10;
+
     // One scalar-size class of the input, ready for bucket accumulation.
     struct Partition {
         typename Curve::PointAffine *bases;     // points (caller's or gathered)
@@ -49,6 +58,8 @@ private:
         uint64_t nChunks;
         uint64_t nBuckets;
         uint64_t nSlices;                       // point-split factor
+        bool batchAffine;                       // bucket accumulation strategy
+        uint64_t batchSize;
         std::unique_ptr<int32_t[]> digits;      // chunk-major [nChunks][n]
         std::unique_ptr<typename Curve::Point[]> partials; // [nSlices][nChunks]
 
@@ -159,6 +170,25 @@ private:
     // Reduce one partition's task partials into a single point.
     void reducePartition(Partition &p, typename Curve::Point &r);
 
+    // Bucket accumulation + running sum for points [i0,i1) of chunk j,
+    // writing the result into the (slice, chunk) partial.
+    void fillChunkXYZZ(Partition &p, uint64_t j, uint64_t i0, uint64_t i1,
+                       uint64_t sliceIdx, uint8_t *taskArena);
+    void fillChunkBatchAffine(Partition &p, uint64_t j, uint64_t i0, uint64_t i1,
+                              uint64_t sliceIdx, uint8_t *taskArena);
+
+    uint64_t partitionArenaBytes(const Partition &p) const {
+        if (!p.batchAffine) {
+            return p.nBuckets * sizeof(typename Curve::Point);
+        }
+        return p.nBuckets * (sizeof(typename Curve::PointAffine)
+                             + sizeof(typename Curve::Point) + 1)
+             + p.batchSize * (sizeof(typename Curve::PointAffine)
+                              + 2*sizeof(typename BaseField::Element)
+                              + sizeof(uint32_t))
+             + 64; // alignment slack
+    }
+
 public:
     MSM(Curve &_g): g(_g), prepared(false), trivial(false) {}
 
@@ -172,16 +202,18 @@ public:
                  uint64_t n,
                  uint64_t parallelismShare = 0);
 
-    // Largest bucket row any of this MSM's tasks needs; the caller provides
-    // an arena of nThreads*maxBuckets() Points to collectTasks().
-    uint64_t maxBuckets() const;
+    // Largest per-thread scratch any of this MSM's tasks needs; the caller
+    // provides an arena of nThreads*arenaBytesPerThread() bytes to
+    // collectTasks() (8-byte aligned, e.g. from new uint8_t[]).
+    uint64_t arenaBytesPerThread() const;
 
     // Append one task per (partition, slice, chunk). Tasks only touch their
-    // own partials and bucketArena[threadId*bucketsPerThread..]. When several
-    // MSMs share an arena, bucketsPerThread is the max of their maxBuckets().
+    // own partials and bucketArena[threadId*bytesPerThread..]. When several
+    // MSMs share an arena, bytesPerThread is the max of their
+    // arenaBytesPerThread().
     void collectTasks(std::vector<Task> &tasks,
-                      typename Curve::Point *bucketArena,
-                      uint64_t bucketsPerThread);
+                      uint8_t *bucketArena,
+                      uint64_t bytesPerThread);
 
     // Reduce all partials into the final result. Call after every task ran.
     void finish(typename Curve::Point &r);
