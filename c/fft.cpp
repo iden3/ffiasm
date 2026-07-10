@@ -199,6 +199,60 @@ void FFT<Field>::fft(Element *a, u_int64_t n) {
 }
 
 template <typename Field>
+void FFT<Field>::fftDITRevToNat(Element *a, u_int64_t n) {
+    u_int64_t domainPow = log2(n);
+    assert(((u_int64_t)1 << domainPow) == n);
+
+    for (u_int32_t s=1; s<=domainPow; s++) {
+        u_int64_t m = 1 << s;
+        u_int64_t mdiv2 = m >> 1;
+
+        threadPool.parallelFor(0, (n>>1), [&] (int begin, int end, int numThread) {
+            for (u_int64_t i=begin; i< end; i++) {
+                Element t;
+                Element u;
+                u_int64_t k=(i/mdiv2)*m;
+                u_int64_t j=i%mdiv2;
+
+                f.mul(t, root(s, j), a[k+j+mdiv2]);
+                f.copy(u,a[k+j]);
+                f.add(a[k+j], t, u);
+                f.sub(a[k+j+mdiv2], u, t);
+            }
+        });
+    }
+}
+
+// Inverse of fftDITRevToNat run backwards: decimation in frequency with
+// inverse twiddles. Leaves the result scaled by n; the caller folds 1/n
+// into its next pointwise pass.
+template <typename Field>
+void FFT<Field>::ifftDIFNatToRev(Element *a, u_int64_t n) {
+    u_int64_t domainPow = log2(n);
+    assert(((u_int64_t)1 << domainPow) == n);
+
+    for (u_int32_t s=domainPow; s>=1; s--) {
+        u_int64_t m = 1 << s;
+        u_int64_t mdiv2 = m >> 1;
+
+        threadPool.parallelFor(0, (n>>1), [&] (int begin, int end, int numThread) {
+            for (u_int64_t i=begin; i< end; i++) {
+                Element t;
+                Element u;
+                u_int64_t k=(i/mdiv2)*m;
+                u_int64_t j=i%mdiv2;
+
+                f.copy(u, a[k+j]);
+                f.copy(t, a[k+j+mdiv2]);
+                f.add(a[k+j], u, t);
+                f.sub(t, u, t);
+                f.mul(a[k+j+mdiv2], t, rootInv(s, j));
+            }
+        });
+    }
+}
+
+template <typename Field>
 void FFT<Field>::ifft(Element *a, u_int64_t n ) {
     fft(a, n);
     u_int64_t domainPow =log2(n);
