@@ -28,24 +28,28 @@ private:
     const uint64_t MIN_CHUNK_SIZE_BITS = 3;
     const uint64_t MAX_CHUNK_SIZE_BITS = 16;
 
-    // Scalars of at most this many significant bits go to the small
-    // partition, which runs the bucket method over a single 64-bit word
-    // and so pays ~4 windows instead of ~16. Scalars 0 and 1 are cheaper
-    // still: they need no scalar multiplication at all.
-    static const uint64_t SMALL_SCALAR_BITS = 64;
+    // (enum members: in-class integral constants that are never ODR-used,
+    // so no out-of-class definitions are needed)
+    enum : uint64_t {
+        // Scalars of at most this many significant bits go to the small
+        // partition, which runs the bucket method over a single 64-bit word
+        // and so pays ~4 windows instead of ~16. Scalars 0 and 1 are cheaper
+        // still: they need no scalar multiplication at all.
+        SMALL_SCALAR_BITS = 64,
 
-    // Don't point-split below this many points per slice: the per-slice
-    // running-sum cost (2^c bucket additions) would dominate.
-    static const uint64_t MIN_POINTS_PER_SLICE = 4096;
+        // Don't point-split below this many points per slice: the per-slice
+        // running-sum cost (2^c bucket additions) would dominate.
+        MIN_POINTS_PER_SLICE = 4096,
 
-    // Batch-affine accumulation: buckets live in affine coordinates and
-    // additions are executed in batches sharing one field inversion
-    // (~5M+1S per addition instead of 9M+2S for an XYZZ mixed add).
-    // Additions that conflict with the pending batch, doublings and
-    // cancellations go to an XYZZ shadow bucket instead. Used only when
-    // the bucket array is large and densely filled enough.
-    static const uint64_t BATCH_SIZE = 512;
-    static const uint64_t MIN_BATCH_AFFINE_CHUNK_BITS = 10;
+        // Batch-affine accumulation: buckets live in affine coordinates and
+        // additions are executed in batches sharing one field inversion
+        // (~5M+1S per addition instead of 9M+2S for an XYZZ mixed add).
+        // Additions that conflict with the pending batch, doublings and
+        // cancellations go to an XYZZ shadow bucket instead. Used only when
+        // the bucket array is large and densely filled enough.
+        BATCH_SIZE = 512,
+        MIN_BATCH_AFFINE_CHUNK_BITS = 10
+    };
 
     // One scalar-size class of the input, ready for bucket accumulation.
     struct Partition {

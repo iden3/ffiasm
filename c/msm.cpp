@@ -26,7 +26,7 @@ void MSM<Curve, BaseField>::preparePartition(Partition &p, uint64_t nThreads)
     // amortized over many additions).
     p.batchAffine = (p.bitsPerChunk >= MIN_BATCH_AFFINE_CHUNK_BITS)
                  && (p.n / p.nSlices >= p.nBuckets);
-    p.batchSize = std::min(BATCH_SIZE, p.nBuckets/8);
+    p.batchSize = std::min<uint64_t>(BATCH_SIZE, p.nBuckets/8);
 
     // recode context for getBucketIndex
     scalars = p.scalars;
