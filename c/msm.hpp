@@ -64,13 +64,18 @@ private:
         uint64_t nSlices;                       // point-split factor
         bool batchAffine;                       // bucket accumulation strategy
         uint64_t batchSize;
-        std::unique_ptr<int32_t[]> digits;      // chunk-major [nChunks][n]
+        std::unique_ptr<int16_t[]> digits;      // chunk-major [nChunks][n]; signed digits
+        // fit int16 exactly: |digit| <= 2^(c-1) <= 2^15 for c <= 16
         std::unique_ptr<typename Curve::Point[]> partials; // [nSlices][nChunks]
 
-        // backing storage when the class was gathered
-        std::unique_ptr<typename Curve::PointAffine[]> ownBases;
+        // When set, the partition addresses the caller's bases/scalars
+        // through this ascending index list instead of gathered copies
+        // (4 bytes per point instead of a point + scalar copy).
+        const uint32_t *indices;
+
+        // backing storage for indexed/gathered classes
+        std::unique_ptr<uint32_t[]> ownIndices;
         std::unique_ptr<uint64_t[]> ownScalars64;
-        std::unique_ptr<uint8_t[]> ownScalars;
     };
 
     Curve &g;

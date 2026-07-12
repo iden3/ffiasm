@@ -18,7 +18,7 @@ void MSM<Curve, BaseField>::preparePartition(Partition &p, uint64_t nThreads)
 
     p.nChunks = calcChunkCount(p.nBits, p.bitsPerChunk);
     p.nBuckets = calcBucketCount(p.bitsPerChunk);
-    p.digits.reset(new int32_t[p.nChunks * p.n]);
+    p.digits.reset(new int16_t[p.nChunks * p.n]);
     p.partials.reset(new typename Curve::Point[p.nSlices * p.nChunks]);
 
     // Batch-affine pays off only when the bucket array is large (the batch
@@ -36,15 +36,17 @@ void MSM<Curve, BaseField>::preparePartition(Partition &p, uint64_t nThreads)
     const uint64_t nChunks = p.nChunks;
     const uint64_t nBuckets = p.nBuckets;
     const uint64_t nPoints = p.n;
-    int32_t *digits = p.digits.get();
+    const uint32_t *indices = p.indices;
+    int16_t *digits = p.digits.get();
 
-    threadPool.parallelFor(0, nPoints, [&, nChunks, nBuckets, nPoints] (int begin, int end, int numThread) {
+    threadPool.parallelFor(0, nPoints, [&, nChunks, nBuckets, nPoints, indices] (int begin, int end, int numThread) {
 
         for (int i = begin; i < end; i++) {
             int carry = 0;
+            const uint64_t scalarIdx = indices ? indices[i] : (uint64_t)i;
 
             for (uint64_t j = 0; j < nChunks; j++) {
-                int bucketIndex = getBucketIndex(i, j) + carry;
+                int bucketIndex = getBucketIndex(scalarIdx, j) + carry;
 
                 if (bucketIndex >= (int)nBuckets) {
                     bucketIndex -= nBuckets*2;
@@ -53,7 +55,7 @@ void MSM<Curve, BaseField>::preparePartition(Partition &p, uint64_t nThreads)
                     carry = 0;
                 }
 
-                digits[j*nPoints + i] = bucketIndex;
+                digits[j*nPoints + i] = (int16_t)bucketIndex;
             }
         }
     });
@@ -95,6 +97,7 @@ void MSM<Curve, BaseField>::prepare(typename Curve::PointAffine *_bases,
     if (_scalarSize < 8) {
         partitions.emplace_back();
         Partition &p = partitions.back();
+        p.indices = NULL;
         p.bases = _bases;
         p.scalars = _scalars;
         p.scalarSize = _scalarSize;
@@ -171,6 +174,7 @@ void MSM<Curve, BaseField>::prepare(typename Curve::PointAffine *_bases,
     if (nBig >= _n - _n/16) {
         partitions.emplace_back();
         Partition &p = partitions.back();
+        p.indices = NULL;
         p.bases = _bases;
         p.scalars = _scalars;
         p.scalarSize = _scalarSize;
@@ -194,6 +198,7 @@ void MSM<Curve, BaseField>::prepare(typename Curve::PointAffine *_bases,
             }
         });
 
+        p.indices = NULL;
         p.bases = _bases;
         p.scalars = (uint8_t *)s64;
         p.scalarSize = sizeof(uint64_t);
@@ -209,21 +214,21 @@ void MSM<Curve, BaseField>::prepare(typename Curve::PointAffine *_bases,
     if (nSmall > 0) {
         partitions.emplace_back();
         small = &partitions.back();
-        small->ownScalars64.reset(new uint64_t[nSmall]);
-        small->ownBases.reset(new typename Curve::PointAffine[nSmall]);
-        small->bases = small->ownBases.get();
-        small->scalars = (uint8_t *)small->ownScalars64.get();
-        small->scalarSize = sizeof(uint64_t);
+        small->ownIndices.reset(new uint32_t[nSmall]);
+        small->indices = small->ownIndices.get();
+        small->bases = _bases;
+        small->scalars = _scalars;
+        small->scalarSize = _scalarSize;
         small->n = nSmall;
         small->nBits = maxSmallBits + 2;
     }
     if (nBig > 0) {
         partitions.emplace_back();
         big = &partitions.back();
-        big->ownScalars.reset(new uint8_t[nBig*_scalarSize]);
-        big->ownBases.reset(new typename Curve::PointAffine[nBig]);
-        big->bases = big->ownBases.get();
-        big->scalars = big->ownScalars.get();
+        big->ownIndices.reset(new uint32_t[nBig]);
+        big->indices = big->ownIndices.get();
+        big->bases = _bases;
+        big->scalars = _scalars;
         big->scalarSize = _scalarSize;
         big->n = nBig;
         big->nBits = maxBigBits + 2;
@@ -249,14 +254,10 @@ void MSM<Curve, BaseField>::prepare(typename Curve::PointAffine *_bases,
                     g.add(ones[b], ones[b], _bases[i]);
                     break;
                 case CLS_SMALL:
-                    std::memcpy(&small->ownScalars64[smallCur], _scalars + i*_scalarSize, sizeof(uint64_t));
-                    small->ownBases[smallCur] = _bases[i];
-                    smallCur++;
+                    small->ownIndices[smallCur++] = (uint32_t)i;
                     break;
                 case CLS_BIG:
-                    std::memcpy(&big->ownScalars[bigCur*_scalarSize], _scalars + i*_scalarSize, _scalarSize);
-                    big->ownBases[bigCur] = _bases[i];
-                    bigCur++;
+                    big->ownIndices[bigCur++] = (uint32_t)i;
                     break;
                 default:
                     break;
@@ -287,8 +288,9 @@ void MSM<Curve, BaseField>::fillChunkXYZZ(Partition &p, uint64_t j,
                                           uint64_t sliceIdx, uint8_t *taskArena)
 {
     typename Curve::Point *buckets = (typename Curve::Point *)taskArena;
-    const int32_t *digits = &p.digits[j*p.n];
+    const int16_t *digits = &p.digits[j*p.n];
     typename Curve::PointAffine *bases = p.bases;
+    const uint32_t *indices = p.indices;
     const uint64_t nBuckets = p.nBuckets;
 
     for (uint64_t i = 0; i < nBuckets; i++) {
@@ -297,12 +299,13 @@ void MSM<Curve, BaseField>::fillChunkXYZZ(Partition &p, uint64_t j,
 
     for (uint64_t i = i0; i < i1; i++) {
         const int32_t bucketIndex = digits[i];
+        typename Curve::PointAffine &base = bases[indices ? indices[i] : i];
 
         if (bucketIndex > 0) {
-            g.add(buckets[bucketIndex-1], buckets[bucketIndex-1], bases[i]);
+            g.add(buckets[bucketIndex-1], buckets[bucketIndex-1], base);
 
         } else if (bucketIndex < 0) {
-            g.sub(buckets[-bucketIndex-1], buckets[-bucketIndex-1], bases[i]);
+            g.sub(buckets[-bucketIndex-1], buckets[-bucketIndex-1], base);
         }
     }
 
@@ -330,8 +333,9 @@ void MSM<Curve, BaseField>::fillChunkBatchAffine(Partition &p, uint64_t j,
 
     const uint64_t nBuckets = p.nBuckets;
     const uint64_t batchSize = p.batchSize;
-    const int32_t *digits = &p.digits[j*p.n];
+    const int16_t *digits = &p.digits[j*p.n];
     PointAffine *bases = p.bases;
+    const uint32_t *indices = p.indices;
     BaseField &F = g.F;
 
     uint8_t *cur = taskArena;
@@ -401,16 +405,19 @@ void MSM<Curve, BaseField>::fillChunkBatchAffine(Partition &p, uint64_t j,
         const int32_t d = digits[i];
 
         if (d == 0) continue;
-        if (g.isZero(bases[i])) continue;
+
+        PointAffine &base = bases[indices ? indices[i] : i];
+
+        if (g.isZero(base)) continue;
 
         const uint32_t b = (uint32_t)(d > 0 ? d : -d) - 1;
 
         PointAffine P;
-        F.copy(P.x, bases[i].x);
+        F.copy(P.x, base.x);
         if (d > 0) {
-            F.copy(P.y, bases[i].y);
+            F.copy(P.y, base.y);
         } else {
-            F.neg(P.y, bases[i].y);
+            F.neg(P.y, base.y);
         }
 
         if (inBatch[b]) {

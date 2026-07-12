@@ -115,6 +115,36 @@ FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads)
 }
 
 template <typename Field>
+void FFT<Field>::higherRootOfUnity(Element &r, u_int32_t extraPow) {
+    mpz_t m_q, m_aux, m_nqr;
+
+    mpz_init(m_q);
+    mpz_init(m_aux);
+    mpz_init(m_nqr);
+
+    f.toMpz(m_aux, f.negOne());
+    mpz_add_ui(m_q, m_aux, 1);
+
+    // (q-1) / 2^(s+extraPow); the primitive root exists iff the division
+    // is exact, i.e. s+extraPow is within the field's 2-adicity
+    if (mpz_scan1(m_aux, 0) < s + extraPow) {
+        mpz_clear(m_q);
+        mpz_clear(m_aux);
+        mpz_clear(m_nqr);
+        throw std::range_error("Root order exceeds the field's 2-adicity");
+    }
+    mpz_fdiv_q_2exp(m_aux, m_aux, s + extraPow);
+
+    f.toMpz(m_nqr, nqr);
+    mpz_powm(m_aux, m_nqr, m_aux, m_q);
+    f.fromMpz(r, m_aux);
+
+    mpz_clear(m_q);
+    mpz_clear(m_aux);
+    mpz_clear(m_nqr);
+}
+
+template <typename Field>
 FFT<Field>::~FFT() {
     delete[] roots;
     delete[] powTwoInv;
