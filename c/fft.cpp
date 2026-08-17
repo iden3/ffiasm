@@ -115,6 +115,36 @@ FFT<Field>::FFT(u_int64_t maxDomainSize, uint32_t _nThreads)
 }
 
 template <typename Field>
+void FFT<Field>::higherRootOfUnity(Element &r, u_int32_t extraPow) {
+    mpz_t m_q, m_aux, m_nqr;
+
+    mpz_init(m_q);
+    mpz_init(m_aux);
+    mpz_init(m_nqr);
+
+    f.toMpz(m_aux, f.negOne());
+    mpz_add_ui(m_q, m_aux, 1);
+
+    // (q-1) / 2^(s+extraPow); the primitive root exists iff the division
+    // is exact, i.e. s+extraPow is within the field's 2-adicity
+    if (mpz_scan1(m_aux, 0) < s + extraPow) {
+        mpz_clear(m_q);
+        mpz_clear(m_aux);
+        mpz_clear(m_nqr);
+        throw std::range_error("Root order exceeds the field's 2-adicity");
+    }
+    mpz_fdiv_q_2exp(m_aux, m_aux, s + extraPow);
+
+    f.toMpz(m_nqr, nqr);
+    mpz_powm(m_aux, m_nqr, m_aux, m_q);
+    f.fromMpz(r, m_aux);
+
+    mpz_clear(m_q);
+    mpz_clear(m_aux);
+    mpz_clear(m_nqr);
+}
+
+template <typename Field>
 FFT<Field>::~FFT() {
     delete[] roots;
     delete[] powTwoInv;
@@ -193,6 +223,60 @@ void FFT<Field>::fft(Element *a, u_int64_t n) {
                 f.copy(u,a[k+j]);
                 f.add(a[k+j], t, u);
                 f.sub(a[k+j+mdiv2], u, t);
+            }
+        });
+    }
+}
+
+template <typename Field>
+void FFT<Field>::fftDITRevToNat(Element *a, u_int64_t n) {
+    u_int64_t domainPow = log2(n);
+    assert(((u_int64_t)1 << domainPow) == n);
+
+    for (u_int32_t s=1; s<=domainPow; s++) {
+        u_int64_t m = 1 << s;
+        u_int64_t mdiv2 = m >> 1;
+
+        threadPool.parallelFor(0, (n>>1), [&] (int begin, int end, int numThread) {
+            for (u_int64_t i=begin; i< end; i++) {
+                Element t;
+                Element u;
+                u_int64_t k=(i/mdiv2)*m;
+                u_int64_t j=i%mdiv2;
+
+                f.mul(t, root(s, j), a[k+j+mdiv2]);
+                f.copy(u,a[k+j]);
+                f.add(a[k+j], t, u);
+                f.sub(a[k+j+mdiv2], u, t);
+            }
+        });
+    }
+}
+
+// Inverse of fftDITRevToNat run backwards: decimation in frequency with
+// inverse twiddles. Leaves the result scaled by n; the caller folds 1/n
+// into its next pointwise pass.
+template <typename Field>
+void FFT<Field>::ifftDIFNatToRev(Element *a, u_int64_t n) {
+    u_int64_t domainPow = log2(n);
+    assert(((u_int64_t)1 << domainPow) == n);
+
+    for (u_int32_t s=domainPow; s>=1; s--) {
+        u_int64_t m = 1 << s;
+        u_int64_t mdiv2 = m >> 1;
+
+        threadPool.parallelFor(0, (n>>1), [&] (int begin, int end, int numThread) {
+            for (u_int64_t i=begin; i< end; i++) {
+                Element t;
+                Element u;
+                u_int64_t k=(i/mdiv2)*m;
+                u_int64_t j=i%mdiv2;
+
+                f.copy(u, a[k+j]);
+                f.copy(t, a[k+j+mdiv2]);
+                f.add(a[k+j], u, t);
+                f.sub(t, u, t);
+                f.mul(a[k+j+mdiv2], t, rootInv(s, j));
             }
         });
     }
