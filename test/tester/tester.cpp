@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
 
-#include <regex>
+#include <vector>
 #include <string>
 #include <iostream>
 #include <stdexcept>
@@ -113,17 +113,14 @@ void callFunction(FunctionSpec fs) {
 }
 
 void processLine(std::string &line) {
-    std::regex re("(\\s*[,;]\\s*)|\\s+"); // whitespace
-
-    std::sregex_token_iterator begin( line.begin(), line.end(), re ,-1);
-    std::sregex_token_iterator end;
+    // Split by whitespace, commas and semicolons, skipping empty tokens
     std::vector<std::string> tokens;
-
-    std::copy(begin, end, std::back_inserter(tokens));
-
-    // Remove initial empty tokens
-    while ((tokens.size() > 0)&&(tokens[0] == "")) {
-        tokens.erase(tokens.begin());
+    size_t pos = 0;
+    while (pos <= line.size()) {
+        size_t end = line.find_first_of(" \t,;", pos);
+        if (end == std::string::npos) end = line.size();
+        if (end > pos) tokens.push_back(line.substr(pos, end - pos));
+        pos = end + 1;
     }
 
     // Empty lines are valid but are not processed
