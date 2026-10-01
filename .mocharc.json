@@ -1,3 +1,4 @@
 {
-    "parallel": true
+    "parallel": true,
+    "slow": 60000
 }
