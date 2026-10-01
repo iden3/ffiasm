@@ -50,7 +50,7 @@ async function benchmarkMM(op, prime) {
 
 async function run() {
     let t;
-/*
+    /*
     //  COPY
     t = await benchmarkMM("copy", bigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617"));
     console.log("copy bn256r Montgomery IntelASM: " + (t/1000) + "s " + (t * 1e6 / N) + "ns per multiplication.");

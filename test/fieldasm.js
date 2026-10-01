@@ -114,7 +114,13 @@ describe("field asm test", function () {
 
     for (const mode of ["asm", "generic"]) {
         generateTest(gl, "gl", mode);
-        generateTest(bn128r, "bn128", mode);
+        generateTest(bn128q, "bn128q", mode);
+        generateTest(bn128r, "bn128r", mode);
+        generateTest(bls12_381q, "bls12_381q", mode);
+        generateTest(secp256k1q, "secp256k1q", mode);
+        generateTest(secp256k1r, "secp256k1r", mode);
+        generateTest(mnt6753q, "mnt6753q", mode);
+        generateTest(mnt6753r, "mnt6753r", mode);
     }
 });
 

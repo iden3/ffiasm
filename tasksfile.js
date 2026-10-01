@@ -1,4 +1,20 @@
-const { sh, cli } = require("tasksfile");
+const { execSync } = require("child_process");
+
+function sh(command, options) {
+    options = options || {};
+    console.log(command);
+    execSync(command, {cwd: options.cwd, stdio: "inherit"});
+}
+
+function cli(tasks) {
+    const name = process.argv[2];
+    if (!tasks[name]) {
+        console.log("Usage: npm run task <task>");
+        console.log("Tasks: " + Object.keys(tasks).join(", "));
+        process.exit(1);
+    }
+    tasks[name](...process.argv.slice(3));
+}
 
 function cleanAll() {
     sh("rm -rf build");

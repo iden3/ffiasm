@@ -143,7 +143,6 @@ module.exports = class RegManager {
                         assert(false);
                     } else {
                         dLoad = dUsed;
-                        dUsed = i;
                     }
                 }
                 dUsed = i;

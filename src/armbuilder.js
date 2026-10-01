@@ -1,7 +1,7 @@
 const bigInt = require("big-integer");
 const assert = require("assert");
 
-module.exports.genFuncs = genFuncs
+module.exports.genFuncs = genFuncs;
 
 class Reg {
     constructor(number) {
@@ -211,7 +211,7 @@ class GenBase {
 
         if (size % 2) {
             this.op("ldr", saved[size-1], "[sp], #16");
-           size--;
+            size--;
         }
 
         for (let i =size; i > 0; i -= 2) {
@@ -336,7 +336,7 @@ class GenBase {
 
 class Gen_rawIsZero extends GenBase {
     constructor(width, space) {
-        super(width, space, "rawIsZero", 1, 16)
+        super(width, space, "rawIsZero", 1, 16);
         this.generate();
     }
 
@@ -363,7 +363,7 @@ class Gen_rawIsZero extends GenBase {
     }
 
     genChunk(width, i) {
-         let r = this.genStep(width, i * 4);
+        let r = this.genStep(width, i * 4);
 
         if (this.accum === undefined) {
             this.accum = r;
@@ -466,7 +466,7 @@ class Gen_rawIsEq extends GenBase {
         this.op_empty();
     }
 
-   genStep(width, i) {
+    genStep(width, i) {
         assert(width > 0);
 
         if (width === 1) {
@@ -906,9 +906,9 @@ class Gen_rawNeg extends GenBase {
         this.genSubtraction();
 
         if (this.hasSavedRegs())
-           this.op("b", this.makeLabel("out"));
+            this.op("b", this.makeLabel("out"));
         else
-           this.op("ret");
+            this.op("ret");
         this.op_empty();
 
         this.op_label(doneLabel);
@@ -972,9 +972,18 @@ class Gen_rawNegLS extends GenBase {
         assert(width <= 12);
 
         this.r1 = this.assignRegs(this.width);
-        this.a2 = cyclicCopy(this.workRegs, this.width);
         this.releaseRegs(this.workRegs);
         this.r2 = this.assignRegs(this.width);
+
+        // In wide fields some work regs are reused for the result, so they can not
+        // hold the loaded operand. x3 is free once q is loaded.
+        const loadRegs = new RegVar();
+        for (const reg of this.workRegs) {
+            if (!this.r2.some(r => r.number === reg.number)) loadRegs.push(reg);
+        }
+        if (loadRegs.length < this.workRegs.length) loadRegs.push(new Reg(3));
+        this.a2 = cyclicCopy(loadRegs, this.width);
+
         this.generate();
     }
 
@@ -1123,7 +1132,7 @@ class Gen_rawShr extends GenBase {
         if (!this.hasSavedRegs())
             this.op("ret");
 
-         this.op_empty();
+        this.op_empty();
     }
 
     genBitShift(wordShift) {
@@ -1382,7 +1391,7 @@ class Gen_rawMul extends GenBase {
         }
     }
 
-    genMulAB(w) {
+    genMulAB() {
         let i = 0;
         for(; i < this.width; i++) {
             let ra = new Reg(3);
@@ -1402,7 +1411,7 @@ class Gen_rawMul extends GenBase {
         this.op_empty();
     }
 
-    genAddMulAB(w) {
+    genAddMulAB() {
         let ra = new Reg(3);
 
         let i = 0;
@@ -1425,11 +1434,11 @@ class Gen_rawMul extends GenBase {
         let t1 = cyclicCopy(new RegVar(7, 5), this.width);
 
         for(i = 0; i < this.width; i++) {
-             let iAdd = (i === this.width - 1) ? "adc" : "adcs";
+            let iAdd = (i === this.width - 1) ? "adc" : "adcs";
 
-             if (!this.canOptimizeConsensys) {
+            if (!this.canOptimizeConsensys) {
                 iAdd = (i) ? "adcs" : "adds";
-             }
+            }
 
             if (!this.isShort) this.genLoadVarWord(this.b1, i, 2);
             this.op("umulh",  t1[i],   this.b1[i],   ra);
@@ -1577,7 +1586,7 @@ class Gen_rawMul1 extends GenBase {
         this.op_empty();
     }
 
-    genMulAB(w) {
+    genMulAB() {
         let i = 0;
         for(; i < this.width; i++) {
             let ra = new Reg(2);

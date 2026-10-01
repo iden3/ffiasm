@@ -17,8 +17,6 @@ function templateMontgomery(fn, q, upperLoop) {
 
     const n64 = Math.floor((q.bitLength() - 1) / 64)+1;
     const canOptimizeConsensys = q.shiftRight((n64-1)*64).leq( bigInt.one.shiftLeft(64).minus(1).shiftRight(1).minus(1) );
-    const base = bigInt.one.shiftLeft(64);
-    const np64 = base.minus(q.modInv(base));
     const t=4;
 
     const params = {q, n64, t, canOptimizeConsensys};

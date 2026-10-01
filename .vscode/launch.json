@@ -5,33 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "prover",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/prover",
-            "args": ["${workspaceFolder}/../circuit-2000-32-256-64_0001.zkey", "${workspaceFolder}/../witness.wtns", "${workspaceFolder}/../proof_js.json"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb"
-        },
-        {
             "name": "altbn128_test",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/altbn128_test",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb"
-        },
-        {
-            "name": "parallelacc_test",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/parallelacc_test",
             "args": [],
             "cwd": "${workspaceFolder}",
             "environment": [],
