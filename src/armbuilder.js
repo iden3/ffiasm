@@ -1010,7 +1010,7 @@ class Gen_rawNegLS extends GenBase {
         }
         if (this.width % 2) this.op_empty();
 
-        this.op("cset", "x2", "cs");
+        this.op("cset", "x2", "cc");
     }
 
     genSubtractionOpA() {
@@ -1021,7 +1021,7 @@ class Gen_rawNegLS extends GenBase {
         }
         if (this.width % 2) this.op_empty();
 
-        this.op("cset", "x3", "cs");
+        this.op("cset", "x3", "cc");
         this.op("orr",  "x3", "x3", "x2");
         this.op_empty();
         this.op("cbz", "x3", this.makeLabel("done"));
@@ -1082,7 +1082,8 @@ class Gen_rawShr extends GenBase {
         if (this.width > 2) {
             this.op("lsr", "x2", "x2", "#6");
             this.op("adr", "x5", this.makeLabel("word_shift"));
-            this.op("ldr", "x5", "[x5, x2, lsl 3]");
+            this.op("ldrsw", "x2", "[x5, x2, lsl 2]");
+            this.op("add", "x5", "x5", "x2");
             this.op("br",  "x5");
 
         } else {
@@ -1095,7 +1096,7 @@ class Gen_rawShr extends GenBase {
         this.op_label(this.makeLabel("word_shift"));
 
         for (let i = 0; i < this.width; i++) {
-            this.op(".quad", this.makeWordLabel(i));
+            this.op(".long", this.makeWordLabel(i) + " - " + this.makeLabel("word_shift"));
         }
     }
 
@@ -1176,8 +1177,16 @@ class Gen_rawShl extends GenBase {
         if (this.width === 1) {
             this.op("ldr", "x3", "[x1]");
             this.op("lsl", "x3", "x3", "x2");
+            this.op("adr", "x4", this.getVarName("lboMask"));
+            this.op("ldr", "x4", "[x4]");
+            this.op("and", "x3", "x3", "x4");
+            this.op("adr", "x4", this.getVarName("rawq"));
+            this.op("ldr", "x4", "[x4]");
+            this.op("subs", "x5", "x3", "x4");
+            this.op("csel", "x3", "x5", "x3", "cs");
             this.op("str", "x3", "[x0]");
             this.op("ret");
+            this.op_empty();
             return;
         }
 
@@ -1216,7 +1225,8 @@ class Gen_rawShl extends GenBase {
         if (this.width > 2) {
             this.op("lsr", "x2", "x2", "#6");
             this.op("adr", "x5", this.makeLabel("word_shift"));
-            this.op("ldr", "x5", "[x5, x2, lsl 3]");
+            this.op("ldrsw", "x2", "[x5, x2, lsl 2]");
+            this.op("add", "x5", "x5", "x2");
             this.op("br",  "x5");
 
         } else {
@@ -1229,7 +1239,7 @@ class Gen_rawShl extends GenBase {
         this.op_label(this.makeLabel("word_shift"));
 
         for (let i = 0; i < this.width; i++) {
-            this.op(".quad", this.makeWordLabel(i));
+            this.op(".long", this.makeWordLabel(i) + " - " + this.makeLabel("word_shift"));
         }
     }
 

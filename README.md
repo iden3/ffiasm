@@ -17,19 +17,19 @@ cd myProject
 buildzqfield -q 21888242871839275222246405745257275088548364400416034343698204186575808495617 -n Fr
 ```
 
-You now will have two files fr.cpp, fr.hpp and fr.asm
+You now will have the files fr.asm, fr.hpp, fr.cpp, fr_element.hpp, fr_generic.cpp, fr_raw_generic.cpp and fr_raw_arm64.s
 
 ```
 ls
 ```
 
-If you are in linux:
+If you are in an Intel64 machine, assemble fr.asm. In linux:
 
 ```
 nasm -felf64 fr.asm
 ```
 
-If you are in a mac:
+In a mac:
 
 ```
 nasm -fmacho64 --prefix _ fr.asm
@@ -63,10 +63,22 @@ int main() {
 }
 ```
 
-Compile it
+Compile it. In Intel64:
 
 ```
-g++ main.cpp fr.o fr.cpp -o example -lgmp
+g++ -DUSE_ASM -DARCH_X86_64 main.cpp fr.o fr.cpp -o example -lgmp
+```
+
+In ARM64:
+
+```
+g++ -DUSE_ASM -DARCH_ARM64 main.cpp fr.cpp fr_generic.cpp fr_raw_generic.cpp fr_raw_arm64.s -o example -lgmp
+```
+
+Or, in any architecture, without assembly:
+
+```
+g++ main.cpp fr.cpp fr_generic.cpp fr_raw_generic.cpp -o example -lgmp
 ```
 
 Run it

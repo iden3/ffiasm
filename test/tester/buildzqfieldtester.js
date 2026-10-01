@@ -11,38 +11,73 @@ const buildZqField = require("../../index.js").buildZqField;
 
 module.exports = testField;
 
-async function  testField(prime, test) {
-    tmp.setGracefulCleanup();
+// Compiled testers, one per (prime, mode). The binary does not depend on the test vector.
+const testers = new Map();
 
+async function buildTester(prime, mode) {
     const dir = await tmp.dir({prefix: "ffiasm_", unsafeCleanup: true });
 
     const source = await buildZqField(prime, "Fr");
 
     // console.log(dir.path);
 
-    await fs.promises.writeFile(path.join(dir.path, "fr.asm"), source.asm, "utf8");
-    await fs.promises.writeFile(path.join(dir.path, "fr.hpp"), source.hpp, "utf8");
-    await fs.promises.writeFile(path.join(dir.path, "fr.cpp"), source.cpp, "utf8");
+    const files = {
+        "fr.asm": source.asm,
+        "fr.hpp": source.hpp,
+        "fr.cpp": source.cpp,
+        "fr_element.hpp": source.element_hpp,
+        "fr_generic.cpp": source.generic_cpp,
+        "fr_raw_generic.cpp": source.raw_generic_cpp,
+        "fr_raw_arm64.s": source.raw_arm64_s
+    };
+    for (const name of Object.keys(files)) {
+        await fs.promises.writeFile(path.join(dir.path, name), files[name], "utf8");
+    }
 
     await exec(`cp  ${path.join(__dirname,  "tester.cpp")} ${dir.path}`);
 
-    if (process.platform === "darwin") {
-        await exec("nasm -fmacho64 --prefix _ " +
-            ` ${path.join(dir.path,  "fr.asm")}`
-        );
-    }  else if (process.platform === "linux") {
-        await exec("nasm -felf64 " +
-            ` ${path.join(dir.path,  "fr.asm")}`
-        );
-    } else throw("Unsupported platform");
+    let flags = "";
+    let sources;
+    if (mode == "generic") {
+        sources = ["tester.cpp", "fr.cpp", "fr_generic.cpp", "fr_raw_generic.cpp"];
+    } else if (process.arch == "x64") {
+        if (process.platform === "darwin") {
+            await exec("nasm -fmacho64 --prefix _ " +
+                ` ${path.join(dir.path,  "fr.asm")}`
+            );
+        }  else if (process.platform === "linux") {
+            await exec("nasm -felf64 " +
+                ` ${path.join(dir.path,  "fr.asm")}`
+            );
+        } else throw("Unsupported platform");
+        flags = " -DUSE_ASM -DARCH_X86_64";
+        sources = ["tester.cpp", "fr.cpp", "fr.o"];
+    } else if (process.arch == "arm64") {
+        flags = " -DUSE_ASM -DARCH_ARM64";
+        sources = ["tester.cpp", "fr.cpp", "fr_generic.cpp", "fr_raw_generic.cpp", "fr_raw_arm64.s"];
+    } else throw("Unsupported architecture");
 
-    await exec("g++" +
-               ` ${path.join(dir.path,  "tester.cpp")}` +
-               ` ${path.join(dir.path,  "fr.o")}` +
-               ` ${path.join(dir.path,  "fr.cpp")}` +
+    // Homebrew on Apple Silicon installs gmp out of the default search paths
+    if ((process.platform === "darwin")&&(fs.existsSync("/opt/homebrew/include/gmp.h"))) {
+        flags += " -I/opt/homebrew/include -L/opt/homebrew/lib";
+    }
+
+    await exec("g++" + flags +
+               sources.map( (f) => " " + path.join(dir.path, f)).join("") +
                ` -o ${path.join(dir.path, "tester")}` +
                " -lgmp -g"
     );
+
+    return dir;
+}
+
+async function  testField(prime, test, mode) {
+    tmp.setGracefulCleanup();
+
+    mode = mode || "asm";
+    const key = prime.toString() + "_" + mode;
+    if (!testers.has(key)) testers.set(key, buildTester(prime, mode));
+    const dir = await testers.get(key);
 
     const inLines = [];
     for (let i=0; i<test.length; i++) {

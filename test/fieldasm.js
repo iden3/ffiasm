@@ -15,104 +15,107 @@ const gl = new bigInt("FFFFFFFF00000001", 16);
 
 describe("field asm test", function () {
     this.timeout(1000000000);
-    function generateTest(curve, name) {
+    function generateTest(curve, name, mode) {
+        name = name + " " + mode;
         it(name + " add", async () => {
             const tv = buildTestVector2(curve, "add");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " sub", async () => {
             const tv = buildTestVector2(curve, "sub");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " neg", async () => {
             const tv = buildTestVector1(curve, "neg");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " square", async () => {
             const tv = buildTestVector1(curve,"square");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " mul", async () => {
             const tv = buildTestVector2(curve, "mul");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " eq", async () => {
             const tv = buildTestVector2(curve, "eq");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " neq", async () => {
             const tv = buildTestVector2(curve, "neq");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " lt", async () => {
             const tv = buildTestVector2(curve, "lt");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " gt", async () => {
             const tv = buildTestVector2(curve, "gt");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " leq", async () => {
             const tv = buildTestVector2(curve, "leq");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " geq", async () => {
             const tv = buildTestVector2(curve, "geq");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " logical and", async () => {
             const tv = buildTestVector2(curve,"land");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " logical or", async () => {
             const tv = buildTestVector2(curve, "lor");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " logical not", async () => {
             const tv = buildTestVector1(curve,"lnot");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " idiv", async () => {
             const tv = buildTestVector2(curve,"idiv");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " inv", async () => {
             const tv = buildTestVector1(curve, "inv");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " div", async () => {
             const tv = buildTestVector2(curve, "div");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " shl", async () => {
             const tv = buildTestVector2(curve, "shl");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " shr", async () => {
             const tv = buildTestVector2(curve, "shr");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " band", async () => {
             const tv = buildTestVector2(curve, "band");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " bor", async () => {
             const tv = buildTestVector2(curve, "bor");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " bxor", async () => {
             const tv = buildTestVector2(curve, "bxor");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
         it(name + " bnot", async () => {
             const tv = buildTestVector1(curve, "bnot");
-            await tester(curve, tv);
+            await tester(curve, tv, mode);
         });
 
     }
 
-    generateTest(bn128r, "gl");
-    generateTest(bn128r, "bn128");
+    for (const mode of ["asm", "generic"]) {
+        generateTest(gl, "gl", mode);
+        generateTest(bn128r, "bn128", mode);
+    }
 });
 
 function buildTestVector2(p, op) {
